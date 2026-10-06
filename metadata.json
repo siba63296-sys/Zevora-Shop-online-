@@ -1,0 +1,7 @@
+{
+  "name": "The Online Store - Modern E-Commerce Platform",
+  "description": "Full-featured responsive e-commerce web platform with product catalog, cart, checkout, order tracking, user profiles, and comprehensive admin dashboard powered by Supabase.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
