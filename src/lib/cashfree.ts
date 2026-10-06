@@ -20,27 +20,28 @@ export interface CashfreeConfigStatus {
 }
 
 export async function getCashfreeConfigStatus(): Promise<CashfreeConfigStatus> {
-  try {
-    const res = await fetch('/api/cashfree/config-status');
-    if (!res.ok) {
-      return {
-        configured: false,
-        environment: 'PRODUCTION',
-        appIdConfigured: false,
-        appIdPrefix: null,
-        secretConfigured: false,
-      };
+  const endpoints = ['/api/cashfree/config-status', '/cashfree/config-status'];
+  for (const ep of endpoints) {
+    try {
+      const res = await fetch(ep);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && typeof data.configured === 'boolean') {
+          return data;
+        }
+      }
+    } catch {
+      // try fallback endpoint
     }
-    return await res.json();
-  } catch {
-    return {
-      configured: false,
-      environment: 'PRODUCTION',
-      appIdConfigured: false,
-      appIdPrefix: null,
-      secretConfigured: false,
-    };
   }
+
+  return {
+    configured: false,
+    environment: 'PRODUCTION',
+    appIdConfigured: false,
+    appIdPrefix: null,
+    secretConfigured: false,
+  };
 }
 
 export async function createCashfreeOrderSession(params: {
@@ -70,21 +71,32 @@ export async function createCashfreeOrderSession(params: {
   error?: string;
   missingCredentials?: boolean;
 }> {
-  try {
-    const res = await fetch('/api/cashfree/create-order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    });
+  const endpoints = ['/api/cashfree/create-order', '/cashfree/create-order'];
+  let lastError = 'Network error connecting to payment gateway server.';
 
-    const data = await res.json();
-    return data;
-  } catch (err: any) {
-    return {
-      success: false,
-      error: err?.message || 'Network error connecting to payment gateway server.',
-    };
+  for (const ep of endpoints) {
+    try {
+      const res = await fetch(ep, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+
+      if (res.status === 404) {
+        continue;
+      }
+
+      const data = await res.json();
+      return data;
+    } catch (err: any) {
+      lastError = err?.message || lastError;
+    }
   }
+
+  return {
+    success: false,
+    error: lastError,
+  };
 }
 
 export async function launchCashfreeCheckout(
@@ -132,19 +144,30 @@ export async function verifyCashfreePayment(orderId: string, isCod?: boolean): P
   payment?: any;
   error?: string;
 }> {
-  try {
-    const res = await fetch('/api/cashfree/verify-order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderId, isCod }),
-    });
+  const endpoints = ['/api/cashfree/verify-order', '/cashfree/verify-order'];
+  let lastError = 'Failed to verify payment status with server.';
 
-    return await res.json();
-  } catch (err: any) {
-    return {
-      success: false,
-      isPaid: false,
-      error: err?.message || 'Failed to verify payment status with server.',
-    };
+  for (const ep of endpoints) {
+    try {
+      const res = await fetch(ep, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, isCod }),
+      });
+
+      if (res.status === 404) {
+        continue;
+      }
+
+      return await res.json();
+    } catch (err: any) {
+      lastError = err?.message || lastError;
+    }
   }
+
+  return {
+    success: false,
+    isPaid: false,
+    error: lastError,
+  };
 }

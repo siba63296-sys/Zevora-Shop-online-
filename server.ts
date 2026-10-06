@@ -1,12 +1,11 @@
 import express, { Request, Response } from 'express';
-import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 
-dotenv.config({ override: true });
+dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -22,6 +21,29 @@ app.use(
   })
 );
 
+// Middleware: Normalize Vercel Serverless Function rewrites & reverse proxies
+app.use((req, _res, next) => {
+  // If Vercel rewrote /api/(.*) -> /api, the original path is in x-matched-path or x-forwarded-uri
+  const matched = (req.headers['x-matched-path'] || req.headers['x-forwarded-uri'] || req.headers['x-now-route-matches']) as string;
+  if (matched && (req.url === '/api' || req.url === '/api/' || req.url === '/' || !req.url.startsWith('/api'))) {
+    req.url = matched;
+  }
+  // If request arrived without /api prefix (e.g. /cashfree/config-status), prefix with /api
+  if (req.url && !req.url.startsWith('/api/') && req.url !== '/api') {
+    if (
+      req.url.startsWith('/cashfree/') ||
+      req.url.startsWith('/coupons') ||
+      req.url.startsWith('/offers') ||
+      req.url.startsWith('/settings') ||
+      req.url.startsWith('/upload-product-image') ||
+      req.url.startsWith('/products')
+    ) {
+      req.url = `/api${req.url}`;
+    }
+  }
+  next();
+});
+
 // Fallback to project credentials if container env has placeholder
 const DEFAULT_SUPABASE_URL = 'https://ijpbacailliwtthsjuqs.supabase.co';
 const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_YEREajXhEn6E0vWtydYjyA_nhZS43A8';
@@ -33,22 +55,30 @@ const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabase
 
 // Cashfree credentials from server-side environment variables ONLY (never exposed to client)
 const getCashfreeConfig = () => {
-  const appId = process.env.CASHFREE_APP_ID || process.env.CASHFREE_CLIENT_ID || '';
-  const secretKey = process.env.CASHFREE_SECRET_KEY || process.env.CASHFREE_CLIENT_SECRET || '';
-  const env = (process.env.CASHFREE_ENV || 'PRODUCTION').toUpperCase();
-  const apiVersion = process.env.CASHFREE_API_VERSION || '2023-08-01';
+  const rawAppId = process.env.CASHFREE_APP_ID || process.env.CASHFREE_CLIENT_ID || '';
+  const rawSecretKey = process.env.CASHFREE_SECRET_KEY || process.env.CASHFREE_CLIENT_SECRET || '';
+  const rawEnv = (process.env.CASHFREE_ENV || 'PRODUCTION').toUpperCase().trim();
+  const rawApiVersion = process.env.CASHFREE_API_VERSION || '2023-08-01';
 
+  // Sanitize trimmed strings (strip quotes if pasted in Vercel UI with quotes)
+  const appId = rawAppId.trim().replace(/^["']|["']$/g, '');
+  const secretKey = rawSecretKey.trim().replace(/^["']|["']$/g, '');
+  const env = rawEnv === 'SANDBOX' ? 'SANDBOX' : 'PRODUCTION';
+  const apiVersion = rawApiVersion.trim().replace(/^["']|["']$/g, '') || '2023-08-01';
+
+  // Production Cashfree PG API Endpoint: https://api.cashfree.com/pg
+  // Sandbox Cashfree PG API Endpoint: https://sandbox.cashfree.com/pg
   const baseUrl = env === 'SANDBOX'
     ? 'https://sandbox.cashfree.com/pg'
     : 'https://api.cashfree.com/pg';
 
   return {
-    appId: appId.trim(),
-    secretKey: secretKey.trim(),
+    appId,
+    secretKey,
     env,
     apiVersion,
     baseUrl,
-    isConfigured: Boolean(appId.trim() && secretKey.trim()),
+    isConfigured: Boolean(appId && secretKey),
   };
 };
 
@@ -1191,12 +1221,13 @@ app.delete('/api/products/:id', async (req: Request, res: Response) => {
 
 // Mount Vite or serve static files
 async function startServer() {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL === '1') {
     app.use(express.static(path.resolve(__dirname, 'dist')));
     app.get('*', (_req: Request, res: Response) => {
       res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
     });
   } else {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: {
         middlewareMode: true,

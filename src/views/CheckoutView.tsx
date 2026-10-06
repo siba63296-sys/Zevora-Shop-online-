@@ -69,6 +69,7 @@ export const CheckoutView: React.FC = () => {
 
   // Cashfree Gateway Status & Return Verification
   const [cfConfig, setCfConfig] = useState<CashfreeConfigStatus | null>(null);
+  const [isCheckingCfConfig, setIsCheckingCfConfig] = useState(true);
   const [verifyingCfOrder, setVerifyingCfOrder] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -79,8 +80,18 @@ export const CheckoutView: React.FC = () => {
   const [cfVerificationState, setCfVerificationState] = useState<'verifying' | 'success' | 'failed' | null>(null);
   const [cfPaymentResult, setCfPaymentResult] = useState<any>(null);
 
+  const refreshCfConfig = async () => {
+    setIsCheckingCfConfig(true);
+    try {
+      const cfg = await getCashfreeConfigStatus();
+      setCfConfig(cfg);
+    } finally {
+      setIsCheckingCfConfig(false);
+    }
+  };
+
   useEffect(() => {
-    getCashfreeConfigStatus().then(setCfConfig);
+    refreshCfConfig();
   }, []);
 
   useEffect(() => {
@@ -1161,17 +1172,28 @@ export const CheckoutView: React.FC = () => {
           </div>
 
           {/* Cashfree Status Information */}
-          {isOnlinePayment && cfConfig && !cfConfig.configured && (
-            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3 text-xs">
-              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold text-amber-900 block text-xs">
-                  Cashfree Credentials Required on Server
-                </span>
-                <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
-                  Please provide your Cashfree <code>CASHFREE_APP_ID</code> and <code>CASHFREE_SECRET_KEY</code> in server environment variables to activate live payments.
-                </p>
+          {isOnlinePayment && !isCheckingCfConfig && cfConfig && !cfConfig.configured && (
+            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl flex items-start justify-between gap-3 text-xs">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-amber-900 block text-xs">
+                    Cashfree Credentials Required on Server
+                  </span>
+                  <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                    Please provide your Cashfree <code>CASHFREE_APP_ID</code> and <code>CASHFREE_SECRET_KEY</code> in server environment variables to activate live payments.
+                  </p>
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={refreshCfConfig}
+                className="shrink-0 px-2.5 py-1.5 rounded-xl bg-amber-200/70 hover:bg-amber-200 text-amber-900 text-[11px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Re-check server credentials"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Re-check</span>
+              </button>
             </div>
           )}
 
