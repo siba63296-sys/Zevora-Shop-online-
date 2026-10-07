@@ -9611,8 +9611,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 18,
     "rating": 4.1,
     "review_count": 357,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 100,
     "images": [
       "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9631,7 +9631,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -9664,8 +9664,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 21,
     "rating": 4.5,
     "review_count": 474,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 10,
     "images": [
       "https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9684,7 +9684,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -9717,8 +9717,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 42,
     "rating": 4.9,
     "review_count": 370,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9737,7 +9737,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -9770,8 +9770,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 68,
     "rating": 4.8,
     "review_count": 96,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9790,7 +9790,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -9823,8 +9823,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 22,
     "rating": 4.4,
     "review_count": 263,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1520639888713-7851133b1ed0?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9843,7 +9843,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -9876,8 +9876,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 38,
     "rating": 4.1,
     "review_count": 455,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9896,7 +9896,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -9929,8 +9929,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 31,
     "rating": 4.1,
     "review_count": 435,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9949,7 +9949,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -9982,8 +9982,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 24,
     "rating": 4.4,
     "review_count": 214,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10002,7 +10002,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -10035,8 +10035,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 19,
     "rating": 4.8,
     "review_count": 150,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10055,7 +10055,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -10088,8 +10088,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 17,
     "rating": 4.9,
     "review_count": 403,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10108,7 +10108,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -10141,8 +10141,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 20,
     "rating": 4.5,
     "review_count": 470,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1607522370275-f14206abe5d3?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10161,7 +10161,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -10194,8 +10194,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 18,
     "rating": 4.1,
     "review_count": 317,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10214,7 +10214,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -10247,8 +10247,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 21,
     "rating": 4,
     "review_count": 29,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10267,7 +10267,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -10300,8 +10300,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 33,
     "rating": 4.3,
     "review_count": 323,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10320,7 +10320,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -10353,8 +10353,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 22,
     "rating": 4.7,
     "review_count": 471,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10373,7 +10373,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -10406,8 +10406,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 33,
     "rating": 4.9,
     "review_count": 399,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10426,7 +10426,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -10459,8 +10459,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 17,
     "rating": 4.7,
     "review_count": 143,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10479,7 +10479,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -10512,8 +10512,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 40,
     "rating": 4.2,
     "review_count": 221,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10532,7 +10532,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -10565,8 +10565,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 38,
     "rating": 4,
     "review_count": 439,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10585,7 +10585,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -10618,8 +10618,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 36,
     "rating": 4.2,
     "review_count": 452,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10638,7 +10638,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -10671,8 +10671,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 35,
     "rating": 4.6,
     "review_count": 256,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10691,7 +10691,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -10724,8 +10724,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 15,
     "rating": 4.9,
     "review_count": 104,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10744,7 +10744,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -10777,8 +10777,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 47,
     "rating": 4.8,
     "review_count": 375,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10797,7 +10797,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -10830,8 +10830,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 11,
     "rating": 4.3,
     "review_count": 474,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10850,7 +10850,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [
@@ -10883,8 +10883,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 21,
     "rating": 4,
     "review_count": 352,
-    "in_stock": false,
-    "stock_quantity": 0,
+    "in_stock": true,
+    "stock_quantity": 25,
     "images": [
       "https://images.unsplash.com/photo-1520639888713-7851133b1ed0?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10903,7 +10903,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "Out of Stock"
+        "value": "In Stock"
       }
     ],
     "colors": [

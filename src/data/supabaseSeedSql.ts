@@ -72,10 +72,13 @@ END $$;`;
     const brand = 'General';
     const mrp = p.original_price || p.price;
     const ratingCount = p.review_count || 1;
+    const stock = p.category_id === 'cat-footwear'
+      ? (p.stock_quantity && p.stock_quantity > 0 ? p.stock_quantity : 25)
+      : (p.stock_quantity ?? 0);
 
     return `  ('${uuid}'::uuid, ${escapeStr(p.name)}, ${escapeStr(p.description)}, ${categoryIdSubquery}, ${p.price}, ${mrp}, ${
       p.discount_percent || 0
-    }, 0, ${escapeTextArray(p.images)}, ${p.rating || 4.5}, ${ratingCount}, ${escapeStr(brand)}, false, ${escapeJson(
+    }, ${stock}, ${escapeTextArray(p.images)}, ${p.rating || 4.5}, ${ratingCount}, ${escapeStr(brand)}, false, ${escapeJson(
       p.specs
     )})`;
   }).join(',\n');

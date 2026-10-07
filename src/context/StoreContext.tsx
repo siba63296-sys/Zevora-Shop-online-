@@ -309,7 +309,29 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          return parsed.map((p: Product) => {
+            if (p.category_id === 'cat-footwear' || p.category_name === 'Shoes & Footwear') {
+              const positiveStock = Number(p.stock_quantity) > 0 ? Number(p.stock_quantity) : 25;
+              const updatedSpecs = Array.isArray(p.specs)
+                ? p.specs.map((s) => (s.label === 'Stock Status' ? { ...s, value: 'In Stock' } : s))
+                : p.specs;
+              const updatedVariants = Array.isArray(p.variants)
+                ? p.variants.map((v) => ({
+                    ...v,
+                    stock_quantity: Number(v.stock_quantity) > 0 ? Number(v.stock_quantity) : 25,
+                    in_stock: true,
+                  }))
+                : p.variants;
+              return {
+                ...p,
+                in_stock: true,
+                stock_quantity: positiveStock,
+                specs: updatedSpecs,
+                variants: updatedVariants,
+              };
+            }
+            return p;
+          });
         }
       }
       return INITIAL_PRODUCTS;
@@ -842,8 +864,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
           const price = Number(p.price) || 0;
           const originalPrice = Number(p.original_price ?? p.mrp ?? p.price) || price;
-          const stockQty = Number(p.stock_quantity ?? p.stock ?? 0);
-          const inStock = p.in_stock !== undefined ? Boolean(p.in_stock) : stockQty > 0;
+          const resolvedCategoryName = p.category_name || catMap.get(p.category_id) || 'General';
+          const isFootwearCategory =
+            resolvedCategoryName === 'Shoes & Footwear' || p.category_id === 'cat-footwear';
+          const rawStockQty = Number(p.stock_quantity ?? p.stock ?? 0);
+          const stockQty = isFootwearCategory ? (rawStockQty > 0 ? rawStockQty : 25) : rawStockQty;
+          const inStock = isFootwearCategory
+            ? true
+            : p.in_stock !== undefined
+              ? Boolean(p.in_stock)
+              : stockQty > 0;
+
+          if (isFootwearCategory && Array.isArray(formattedSpecs)) {
+            formattedSpecs = formattedSpecs.map((s) =>
+              s.label === 'Stock Status' ? { ...s, value: 'In Stock' } : s
+            );
+          }
 
           // Parse variants from p.variants or p.specs?.variants
           let parsedVariants: ProductVariant[] = [];
@@ -853,6 +889,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             parsedVariants = rawSpecs.variants;
           } else if (typeof p.variants === 'string') {
             try { parsedVariants = JSON.parse(p.variants); } catch {}
+          }
+
+          if (isFootwearCategory && parsedVariants.length > 0) {
+            parsedVariants = parsedVariants.map((v) => ({
+              ...v,
+              stock_quantity: Number(v.stock_quantity) > 0 ? Number(v.stock_quantity) : 25,
+              in_stock: true,
+            }));
           }
 
           // Parse colors

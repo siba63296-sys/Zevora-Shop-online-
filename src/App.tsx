@@ -3,7 +3,7 @@ import { StoreProvider, useStore } from './context/StoreContext';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { Toast } from './components/Toast';
-import { NewsletterSubscription } from './components/NewsletterSubscription';
+import { AdsterraBanner } from './components/AdsterraBanner';
 import { ProductComparisonModal, ComparisonDock } from './components/ProductComparisonModal';
 
 // Views
@@ -93,8 +93,10 @@ const MainContent: React.FC = () => {
       {currentPage !== 'admin' && (
         <footer className="bg-white border-t border-slate-200 mt-12 pb-20 lg:pb-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-            {/* Newsletter Subscription Component */}
-            <NewsletterSubscription />
+            {/* Adsterra Banner Ad Area (Excluded on Checkout, Payment, Login, Signup, and Admin pages) */}
+            {currentPage !== 'checkout' && currentPage !== 'login' && (
+              <AdsterraBanner />
+            )}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {/* Brand Col */}
