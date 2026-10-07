@@ -301,14 +301,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Base Catalog State (Original database prices preserved untouched)
   const [baseProducts, setBaseProducts] = useState<Product[]>(() => {
-    if (isSupabaseConfigured()) {
-      return [];
-    }
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_PRODUCTS);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= INITIAL_PRODUCTS.length) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed;
         }
       }
@@ -319,14 +316,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   const [categories, setCategories] = useState<Category[]>(() => {
-    if (isSupabaseConfigured()) {
-      return [];
-    }
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_CATEGORIES);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= INITIAL_CATEGORIES.length) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed;
         }
       }
@@ -803,7 +797,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // 1. Fetch categories directly from Supabase categories table
       const { data: catData, error: catError } = await supabase.from('categories').select('*').order('created_at');
       let catMap = new Map<string, string>();
-      if (!catError && catData) {
+      if (!catError && catData && catData.length > 0) {
         catMap = new Map(catData.map((c: any) => [c.id, c.name]));
         const formattedCats: Category[] = catData.map((c: any) => ({
           id: c.id,
@@ -817,11 +811,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           image_url: c.image_url || '',
         }));
         setCategories(formattedCats);
+      } else {
+        setCategories((prev) => (prev.length > 0 ? prev : INITIAL_CATEGORIES));
       }
 
       // 2. Fetch products directly from Supabase products table (NO demo fallback merging)
       const { data: prodData, error: prodError } = await supabase.from('products').select('*').order('created_at');
-      if (!prodError && prodData) {
+      if (!prodError && prodData && prodData.length > 0) {
         const formattedProds: Product[] = prodData.map((p: any) => {
           let formattedSpecs: { label: string; value: string }[] = [];
           if (Array.isArray(p.specs)) {
@@ -861,6 +857,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           };
         });
         setBaseProducts(formattedProds);
+      } else {
+        setBaseProducts((prev) => (prev.length > 0 ? prev : INITIAL_PRODUCTS));
       }
 
       // 3. Fetch orders from Supabase orders table
@@ -978,6 +976,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setIsSupabaseConnected(true);
     } catch (err) {
       console.warn('Supabase fetch issue:', err);
+      setCategories((prev) => (prev.length > 0 ? prev : INITIAL_CATEGORIES));
+      setBaseProducts((prev) => (prev.length > 0 ? prev : INITIAL_PRODUCTS));
     } finally {
       setIsLoading(false);
     }

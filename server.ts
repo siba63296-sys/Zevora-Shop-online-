@@ -23,22 +23,43 @@ app.use(
 
 // Middleware: Normalize Vercel Serverless Function rewrites & reverse proxies
 app.use((req, _res, next) => {
-  // If Vercel rewrote /api/(.*) -> /api, the original path is in x-matched-path or x-forwarded-uri
-  const matched = (req.headers['x-matched-path'] || req.headers['x-forwarded-uri'] || req.headers['x-now-route-matches']) as string;
-  if (matched && (req.url === '/api' || req.url === '/api/' || req.url === '/' || !req.url.startsWith('/api'))) {
-    req.url = matched;
+  // 1. Check if rewrite forwarded a query parameter (e.g. ?__path=cashfree/config-status)
+  const qPath = req.query && (req.query.__path || req.query.path || req.query['1'] || req.query['0']);
+  if (typeof qPath === 'string' && qPath.trim()) {
+    const clean = qPath.trim().replace(/^\/+/, '');
+    req.url = clean.startsWith('api/') ? `/${clean}` : `/api/${clean}`;
+  } else {
+    // 2. Check Vercel regex rewrite match headers (e.g. x-now-route-matches: 1=cashfree%2Fconfig-status)
+    const rawMatches = req.headers['x-now-route-matches'] as string;
+    if (rawMatches && (req.url === '/api' || req.url === '/api/' || req.url === '/')) {
+      try {
+        const parsed = new URLSearchParams(rawMatches);
+        const sub = parsed.get('1') || parsed.get('0');
+        if (sub) {
+          const dec = decodeURIComponent(sub).replace(/^\/+/, '');
+          req.url = dec.startsWith('api/') ? `/${dec}` : `/api/${dec}`;
+        }
+      } catch {}
+    }
+
+    // 3. Fallback to matched path if it is a specific subpath (and not just /api)
+    const rawMatched = (req.headers['x-matched-path'] || req.headers['x-forwarded-uri'] || req.headers['x-original-url']) as string;
+    if (rawMatched && rawMatched !== '/api' && rawMatched !== '/api/' && rawMatched !== '/' && (req.url === '/api' || req.url === '/api/' || req.url === '/')) {
+      req.url = rawMatched.startsWith('/api') ? rawMatched : `/api${rawMatched.startsWith('/') ? '' : '/'}${rawMatched}`;
+    }
   }
-  // If request arrived without /api prefix (e.g. /cashfree/config-status), prefix with /api
+
+  // 4. If request arrived without /api prefix, prefix with /api
   if (req.url && !req.url.startsWith('/api/') && req.url !== '/api') {
     if (
-      req.url.startsWith('/cashfree/') ||
+      req.url.startsWith('/cashfree') ||
       req.url.startsWith('/coupons') ||
       req.url.startsWith('/offers') ||
       req.url.startsWith('/settings') ||
       req.url.startsWith('/upload-product-image') ||
       req.url.startsWith('/products')
     ) {
-      req.url = `/api${req.url}`;
+      req.url = `/api${req.url.startsWith('/') ? '' : '/'}${req.url.replace(/^\/+/, '')}`;
     }
   }
   next();
@@ -53,24 +74,97 @@ const supabaseUrl = (!envUrl || envUrl.includes('your-project.supabase.co') || e
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
+function sanitizeEnv(val: unknown): string {
+  if (!val || typeof val !== 'string') return '';
+  return val
+    .trim()
+    .replace(/^["'`]|["'`]$/g, '')
+    .replace(/\r?\n|\r/g, '')
+    .trim();
+}
+
 // Cashfree credentials from server-side environment variables ONLY (never exposed to client)
-const getCashfreeConfig = () => {
-  const rawAppId = process.env.CASHFREE_APP_ID || process.env.CASHFREE_CLIENT_ID || '';
-  const rawSecretKey = process.env.CASHFREE_SECRET_KEY || process.env.CASHFREE_CLIENT_SECRET || '';
-  const rawEnv = (process.env.CASHFREE_ENV || 'PRODUCTION').toUpperCase().trim();
-  const rawApiVersion = process.env.CASHFREE_API_VERSION || '2023-08-01';
+export const getCashfreeConfig = () => {
+  const rawAppId = (
+    process.env.CASHFREE_APP_ID ||
+    process.env.CASHFREE_CLIENT_ID ||
+    process.env.CASHFREE_KEY_ID ||
+    process.env.cashfree_app_id ||
+    process.env.Cashfree_App_Id ||
+    ''
+  );
+  const rawSecretKey = (
+    process.env.CASHFREE_SECRET_KEY ||
+    process.env.CASHFREE_CLIENT_SECRET ||
+    process.env.CASHFREE_API_SECRET ||
+    process.env.CASHFREE_SECRET ||
+    process.env.cashfree_secret_key ||
+    process.env.Cashfree_Secret_Key ||
+    ''
+  );
+  const rawApiVersion = (
+    process.env.CASHFREE_API_VERSION ||
+    process.env.cashfree_api_version ||
+    '2023-08-01'
+  );
+  const rawEnv = (
+    process.env.CASHFREE_ENV ||
+    process.env.cashfree_env ||
+    'PRODUCTION'
+  ).toUpperCase().trim();
 
-  // Sanitize trimmed strings (strip quotes if pasted in Vercel UI with quotes)
-  const appId = rawAppId.trim().replace(/^["']|["']$/g, '');
-  const secretKey = rawSecretKey.trim().replace(/^["']|["']$/g, '');
-  const env = rawEnv === 'SANDBOX' ? 'SANDBOX' : 'PRODUCTION';
-  const apiVersion = rawApiVersion.trim().replace(/^["']|["']$/g, '') || '2023-08-01';
+  const appId = sanitizeEnv(rawAppId);
+  const secretKey = sanitizeEnv(rawSecretKey);
+  const apiVersion = sanitizeEnv(rawApiVersion) || '2023-08-01';
 
-  // Production Cashfree PG API Endpoint: https://api.cashfree.com/pg
-  // Sandbox Cashfree PG API Endpoint: https://sandbox.cashfree.com/pg
+  // Requirement 12: Ensure production Cashfree uses the Production environment, not Sandbox.
+  // In Vercel or Production deployment, strictly enforce PRODUCTION unless explicitly set to Sandbox in non-prod
+  const isVercelProd = process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
+  let env: 'PRODUCTION' | 'SANDBOX' = 'PRODUCTION';
+  if (isVercelProd) {
+    env = 'PRODUCTION';
+  } else if (rawEnv === 'SANDBOX') {
+    env = 'SANDBOX';
+  } else {
+    env = 'PRODUCTION';
+  }
+
   const baseUrl = env === 'SANDBOX'
     ? 'https://sandbox.cashfree.com/pg'
     : 'https://api.cashfree.com/pg';
+
+  const isConfigured = Boolean(appId && secretKey);
+
+  // Safe server-side diagnostic logging (NEVER exposing secret values)
+  const envKeysDetected = Object.keys(process.env).filter((k) =>
+    k.toUpperCase().includes('CASHFREE')
+  );
+
+  if (!isConfigured) {
+    console.warn('[Cashfree Config Warning] Server credentials incomplete:', {
+      hasAppId: Boolean(appId),
+      appIdLength: appId.length,
+      hasSecretKey: Boolean(secretKey),
+      secretKeyLength: secretKey.length,
+      environment: env,
+      apiVersion,
+      detectedCashfreeEnvKeys: envKeysDetected,
+      hint: envKeysDetected.length === 0
+        ? 'No CASHFREE_* environment variables found in process.env. Ensure they are configured in Vercel Project Settings for Production, and trigger a new deployment.'
+        : 'CASHFREE_* environment variables detected, but App ID or Secret Key resolved to empty string.',
+    });
+  } else {
+    console.log('[Cashfree Config] Credentials verified successfully:', {
+      appIdPrefix: appId.substring(0, 4) + '...',
+      appIdLength: appId.length,
+      hasSecretKey: true,
+      secretKeyLength: secretKey.length,
+      environment: env,
+      apiVersion,
+      baseUrl,
+      detectedCashfreeEnvKeys: envKeysDetected,
+    });
+  }
 
   return {
     appId,
@@ -78,7 +172,7 @@ const getCashfreeConfig = () => {
     env,
     apiVersion,
     baseUrl,
-    isConfigured: Boolean(appId && secretKey),
+    isConfigured,
   };
 };
 
@@ -263,19 +357,31 @@ async function validateCouponServerSide(
 }
 
 // 1. Config status check (safe, does NOT expose secret key)
-app.get('/api/cashfree/config-status', (_req: Request, res: Response) => {
+app.get(['/api/cashfree/config-status', '/cashfree/config-status'], (_req: Request, res: Response) => {
   const config = getCashfreeConfig();
+  res.setHeader('Cache-Control', 'no-store, max-age=0');
   res.json({
     configured: config.isConfigured,
     environment: config.env,
     appIdConfigured: Boolean(config.appId),
     appIdPrefix: config.appId ? config.appId.substring(0, 4) + '...' : null,
     secretConfigured: Boolean(config.secretKey),
+    apiVersion: config.apiVersion,
+    timestamp: new Date().toISOString(),
+    diagnostics: {
+      hasAppId: Boolean(config.appId),
+      hasSecret: Boolean(config.secretKey),
+      appIdLength: config.appId ? config.appId.length : 0,
+      secretLength: config.secretKey ? config.secretKey.length : 0,
+      envKeysDetected: Object.keys(process.env)
+        .filter((k) => k.toUpperCase().includes('CASHFREE'))
+        .map((k) => k.trim()),
+    },
   });
 });
 
 // Server-side Coupon Validation Endpoint
-app.post('/api/coupons/validate', async (req: Request, res: Response) => {
+app.post(['/api/coupons/validate', '/coupons/validate'], async (req: Request, res: Response) => {
   const { code, items, cartSubtotal } = req.body;
   const result = await validateCouponServerSide(
     code,
@@ -286,7 +392,7 @@ app.post('/api/coupons/validate', async (req: Request, res: Response) => {
 });
 
 // 2. Create Cashfree Order
-app.post('/api/cashfree/create-order', async (req: Request, res: Response) => {
+app.post(['/api/cashfree/create-order', '/cashfree/create-order'], async (req: Request, res: Response) => {
   const config = getCashfreeConfig();
 
   if (!config.isConfigured) {
@@ -482,7 +588,7 @@ app.post('/api/cashfree/create-order', async (req: Request, res: Response) => {
 });
 
 // 3. Server-side Verify Cashfree Order & Payment
-app.post('/api/cashfree/verify-order', async (req: Request, res: Response) => {
+app.post(['/api/cashfree/verify-order', '/cashfree/verify-order'], async (req: Request, res: Response) => {
   const config = getCashfreeConfig();
 
   if (!config.isConfigured) {
@@ -654,7 +760,7 @@ app.post('/api/cashfree/verify-order', async (req: Request, res: Response) => {
 });
 
 // 4. Secure & Idempotent Cashfree Webhook Listener
-app.post('/api/cashfree/webhook', async (req: Request, res: Response) => {
+app.post(['/api/cashfree/webhook', '/cashfree/webhook'], async (req: Request, res: Response) => {
   const config = getCashfreeConfig();
   const signature = req.headers['x-webhook-signature'] as string;
   const timestamp = req.headers['x-webhook-timestamp'] as string;
