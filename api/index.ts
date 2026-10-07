@@ -1,4 +1,29 @@
-import app, { getCashfreeConfig } from '../server';
+import app from '../server';
+
+function sanitize(val: unknown): string {
+  if (!val || typeof val !== 'string') return '';
+  return val.trim().replace(/^["'`]|["'`]$/g, '').replace(/\r?\n|\r/g, '').trim();
+}
+
+function getLocalCashfreeConfig() {
+  const appId = sanitize(process.env.CASHFREE_APP_ID || process.env.CASHFREE_CLIENT_ID || '');
+  const secretKey = sanitize(process.env.CASHFREE_SECRET_KEY || process.env.CASHFREE_CLIENT_SECRET || '');
+  const rawApiVersion = sanitize(process.env.CASHFREE_API_VERSION || '2023-08-01');
+  const rawEnv = (process.env.CASHFREE_ENV || 'PRODUCTION').toUpperCase().trim();
+
+  const isVercelProd = process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
+  const env = isVercelProd ? 'PRODUCTION' : (rawEnv === 'SANDBOX' ? 'SANDBOX' : 'PRODUCTION');
+  const baseUrl = env === 'SANDBOX' ? 'https://sandbox.cashfree.com/pg' : 'https://api.cashfree.com/pg';
+
+  return {
+    appId,
+    secretKey,
+    apiVersion: rawApiVersion || '2023-08-01',
+    env,
+    baseUrl,
+    isConfigured: Boolean(appId && secretKey),
+  };
+}
 
 export default function handler(req: any, res: any) {
   // 1. Reconstruct original path from query parameter (e.g. ?__path=cashfree/config-status)
@@ -43,17 +68,12 @@ export default function handler(req: any, res: any) {
 
   // Direct fast-path for config-status check
   if (req.method === 'GET' && (req.url === '/api/cashfree/config-status' || req.url === '/cashfree/config-status')) {
-    const config = getCashfreeConfig();
-    console.log('[Cashfree Serverless api/index.ts config-status]', {
-      configured: config.isConfigured,
-      environment: config.env,
-      appIdConfigured: Boolean(config.appId),
-      secretConfigured: Boolean(config.secretKey),
-    });
+    const config = getLocalCashfreeConfig();
 
     if (res.setHeader) {
       res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Cache-Control', 'no-store, max-age=0');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+      res.setHeader('Access-Control-Allow-Origin', '*');
     }
 
     return res.status(200).json({
@@ -76,5 +96,13 @@ export default function handler(req: any, res: any) {
     });
   }
 
-  return app(req, res);
+  try {
+    return app(req, res);
+  } catch (err: any) {
+    console.error('API routing exception:', err);
+    return res.status(500).json({
+      error: 'API execution error',
+      message: err?.message || String(err),
+    });
+  }
 }
