@@ -1,3 +1,41 @@
+export interface ProductVariant {
+  id: string;
+  sku?: string;
+  color?: string;
+  color_hex?: string;
+  size?: string;
+  price?: number;
+  original_price?: number;
+  stock_quantity: number;
+  images?: string[];
+  in_stock?: boolean;
+}
+
+export interface ColorVariant {
+  name: string;
+  hex: string;
+  images?: string[];
+}
+
+export interface SizeChartRow {
+  size: string;
+  chest?: string;
+  waist?: string;
+  hips?: string;
+  length?: string;
+  shoulder?: string;
+  age_group?: string;
+  height?: string;
+}
+
+export interface SizeChart {
+  type: 'standard' | 'girls' | 'footwear' | 'custom';
+  title?: string;
+  unit: 'inches' | 'cm';
+  rows: SizeChartRow[];
+  guide_tips?: string[];
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -13,8 +51,15 @@ export interface Product {
   stock_quantity: number;
   images: string[];
   specs: { label: string; value: string }[];
-  colors: { name: string; hex: string }[];
+  colors: { name: string; hex: string; images?: string[] }[];
   sizes?: string[];
+  brand?: string;
+  subcategory?: string;
+  sku?: string;
+  variants?: ProductVariant[];
+  color_variants?: ColorVariant[];
+  size_chart?: SizeChart;
+  size_chart_type?: string;
   is_featured?: boolean;
   is_deal?: boolean;
   applied_offer_id?: string;
@@ -41,6 +86,10 @@ export interface CartItem {
   quantity: number;
   selected_color?: string;
   selected_size?: string;
+  selected_variant_id?: string;
+  selected_variant_sku?: string;
+  variant_price?: number;
+  variant_original_price?: number;
 }
 
 export interface WishlistItem {
@@ -75,6 +124,8 @@ export interface OrderItem {
   quantity: number;
   color?: string;
   size?: string;
+  variant_sku?: string;
+  variant_id?: string;
 }
 
 export type OrderStatus =

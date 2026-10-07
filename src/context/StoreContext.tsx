@@ -13,6 +13,9 @@ import {
   Offer,
   StoreSettings,
   Coupon,
+  ProductVariant,
+  ColorVariant,
+  SizeChart,
 } from '../types';
 import {
   INITIAL_CATEGORIES,
@@ -54,7 +57,7 @@ interface StoreContextType {
   // Cart
   cart: CartItem[];
   cartCount: number;
-  addToCart: (product: Product, quantity?: number, color?: string, size?: string) => void;
+  addToCart: (product: Product, quantity?: number, color?: string, size?: string, variant?: ProductVariant | null) => void;
   removeFromCart: (cartItemId: string) => void;
   updateCartQuantity: (cartItemId: string, newQty: number) => void;
   clearCart: () => void;
@@ -820,19 +823,69 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!prodError && prodData && prodData.length > 0) {
         const formattedProds: Product[] = prodData.map((p: any) => {
           let formattedSpecs: { label: string; value: string }[] = [];
-          if (Array.isArray(p.specs)) {
-            formattedSpecs = p.specs;
-          } else if (p.specs && typeof p.specs === 'object') {
-            formattedSpecs = Object.entries(p.specs).map(([label, value]) => ({
-              label,
-              value: String(value),
-            }));
+          const rawSpecs = p.specs;
+
+          if (Array.isArray(rawSpecs)) {
+            formattedSpecs = rawSpecs;
+          } else if (rawSpecs && typeof rawSpecs === 'object') {
+            if (Array.isArray(rawSpecs.items)) {
+              formattedSpecs = rawSpecs.items;
+            } else {
+              formattedSpecs = Object.entries(rawSpecs)
+                .filter(([k]) => !['variants', 'colors', 'sizes', 'size_chart', 'brand', 'sku', 'subcategory', 'color_variants'].includes(k))
+                .map(([label, value]) => ({
+                  label,
+                  value: typeof value === 'object' ? JSON.stringify(value) : String(value),
+                }));
+            }
           }
 
           const price = Number(p.price) || 0;
           const originalPrice = Number(p.original_price ?? p.mrp ?? p.price) || price;
           const stockQty = Number(p.stock_quantity ?? p.stock ?? 0);
           const inStock = p.in_stock !== undefined ? Boolean(p.in_stock) : stockQty > 0;
+
+          // Parse variants from p.variants or p.specs?.variants
+          let parsedVariants: ProductVariant[] = [];
+          if (Array.isArray(p.variants)) {
+            parsedVariants = p.variants;
+          } else if (rawSpecs && typeof rawSpecs === 'object' && Array.isArray(rawSpecs.variants)) {
+            parsedVariants = rawSpecs.variants;
+          } else if (typeof p.variants === 'string') {
+            try { parsedVariants = JSON.parse(p.variants); } catch {}
+          }
+
+          // Parse colors
+          let parsedColors = Array.isArray(p.colors)
+            ? p.colors
+            : (rawSpecs && typeof rawSpecs === 'object' && Array.isArray(rawSpecs.colors)
+              ? rawSpecs.colors
+              : (typeof p.colors === 'string' ? JSON.parse(p.colors || '[]') : []));
+
+          if (parsedColors.length === 0 && parsedVariants.length > 0) {
+            const uniqueColors = Array.from(new Set(parsedVariants.map((v) => v.color).filter(Boolean)));
+            parsedColors = uniqueColors.map((cName) => {
+              const match = parsedVariants.find((v) => v.color === cName);
+              return { name: cName as string, hex: match?.color_hex || '#0f172a' };
+            });
+          }
+
+          // Parse sizes
+          let parsedSizes = Array.isArray(p.sizes)
+            ? p.sizes
+            : (rawSpecs && typeof rawSpecs === 'object' && Array.isArray(rawSpecs.sizes)
+              ? rawSpecs.sizes
+              : (typeof p.sizes === 'string' ? JSON.parse(p.sizes || '[]') : []));
+
+          if (parsedSizes.length === 0 && parsedVariants.length > 0) {
+            parsedSizes = Array.from(new Set(parsedVariants.map((v) => v.size).filter(Boolean))) as string[];
+          }
+
+          const parsedSizeChart = p.size_chart || (rawSpecs && typeof rawSpecs === 'object' ? rawSpecs.size_chart : undefined);
+          const parsedColorVariants = p.color_variants || (rawSpecs && typeof rawSpecs === 'object' ? rawSpecs.color_variants : undefined);
+          const brand = p.brand || (rawSpecs && typeof rawSpecs === 'object' ? rawSpecs.brand : 'Zevora');
+          const sku = (rawSpecs && typeof rawSpecs === 'object' ? rawSpecs.sku : undefined);
+          const subcategory = (rawSpecs && typeof rawSpecs === 'object' ? rawSpecs.subcategory : undefined);
 
           return {
             id: p.id,
@@ -849,8 +902,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             in_stock: inStock,
             images: Array.isArray(p.images) ? p.images : (typeof p.images === 'string' ? JSON.parse(p.images || '[]') : []),
             specs: formattedSpecs,
-            colors: Array.isArray(p.colors) ? p.colors : (typeof p.colors === 'string' ? JSON.parse(p.colors || '[]') : []),
-            sizes: Array.isArray(p.sizes) ? p.sizes : (typeof p.sizes === 'string' ? JSON.parse(p.sizes || '[]') : []),
+            colors: parsedColors,
+            sizes: parsedSizes,
+            brand: brand,
+            sku: sku,
+            subcategory: subcategory,
+            variants: parsedVariants,
+            color_variants: parsedColorVariants,
+            size_chart: parsedSizeChart,
             is_featured: Boolean(p.is_featured),
             is_deal: Boolean(p.is_deal),
             created_at: p.created_at,
@@ -1184,7 +1243,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // Cart operations
-  const addToCart = (product: Product, quantity = 1, color?: string, size?: string) => {
+  const addToCart = (
+    product: Product,
+    quantity = 1,
+    color?: string,
+    size?: string,
+    variant?: ProductVariant | null
+  ) => {
+    // Check variant stock if provided
+    if (variant && variant.stock_quantity <= 0) {
+      showToast(`${product.name} (${[color, size].filter(Boolean).join(' • ')}) is Out of Stock.`, 'error');
+      return;
+    }
+
     if (!product.in_stock || product.stock_quantity <= 0) {
       showToast(`${product.name} is Out of Stock and cannot be purchased.`, 'error');
       return;
@@ -1214,11 +1285,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         quantity,
         selected_color: color || product.colors?.[0]?.name,
         selected_size: size || product.sizes?.[0],
+        selected_variant_id: variant?.id,
+        selected_variant_sku: variant?.sku,
+        variant_price: variant?.price,
+        variant_original_price: variant?.original_price,
       };
       return [...prev, newItem];
     });
 
-    showToast(`Added ${product.name} to cart`, 'success');
+    const variantDesc = [color, size].filter(Boolean).join(' • ');
+    showToast(`Added ${product.name}${variantDesc ? ` (${variantDesc})` : ''} to cart`, 'success');
   };
 
   const removeFromCart = (cartItemId: string) => {
@@ -1240,14 +1316,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCart([]);
   };
 
-  // Derived syncedCart: dynamically syncs cart items with current active product offer pricing
+  // Derived syncedCart: dynamically syncs cart items with current active product offer pricing & variants
   const syncedCart = useMemo(() => {
     return cart.map((item) => {
       const activeProd = products.find((p) => p.id === item.product_id);
       if (activeProd) {
+        const v = activeProd.variants?.find(
+          (varItem) =>
+            (item.selected_variant_id && varItem.id === item.selected_variant_id) ||
+            ((!item.selected_color || varItem.color === item.selected_color) &&
+              (!item.selected_size || varItem.size === item.selected_size))
+        );
         return {
           ...item,
           product: activeProd,
+          variant_price: v?.price ?? item.variant_price,
+          variant_original_price: v?.original_price ?? item.variant_original_price,
         };
       }
       return item;
@@ -1256,10 +1340,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const cartCount = syncedCart.reduce((sum, item) => sum + item.quantity, 0);
   const cartSubtotal = syncedCart.reduce(
-    (sum, item) => sum + (item.product.original_price || item.product.price) * item.quantity,
+    (sum, item) =>
+      sum +
+      (item.variant_original_price ??
+        item.product.original_price ??
+        item.variant_price ??
+        item.product.price) *
+        item.quantity,
     0
   );
-  const cartItemsDiscountedTotal = syncedCart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const cartItemsDiscountedTotal = syncedCart.reduce(
+    (sum, item) => sum + (item.variant_price ?? item.product.price) * item.quantity,
+    0
+  );
   const cartOfferDiscount = Math.max(0, cartSubtotal - cartItemsDiscountedTotal);
 
   // Validate applied coupon dynamically against current cart
@@ -1423,13 +1516,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         product_id: item.product_id,
         product_name: item.product.name,
         product_image: item.product.images[0] || '',
-        price: item.product.price,
-        original_price: item.product.original_price || item.product.price,
-        discount_amount: Math.max(0, (item.product.original_price || item.product.price) - item.product.price),
+        price: item.variant_price ?? item.product.price,
+        original_price: item.variant_original_price ?? item.product.original_price ?? item.product.price,
+        discount_amount: Math.max(0, (item.variant_original_price ?? item.product.original_price ?? item.product.price) - (item.variant_price ?? item.product.price)),
         discount_percent: item.product.discount_percent || 0,
         quantity: item.quantity,
         color: item.selected_color,
         size: item.selected_size,
+        variant_sku: item.selected_variant_sku,
+        variant_id: item.selected_variant_id,
       })),
       subtotal: finalSubtotal,
       discount_amount: finalDisc,
@@ -1489,6 +1584,78 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             );
           } catch (itemErr) {
             console.warn('Order items insert note:', itemErr);
+          }
+        }
+      }
+    }
+
+    // Automatically decrement stock for each purchased item & variant
+    for (const it of syncedCart) {
+      const prod = products.find((p) => p.id === it.product_id);
+      if (prod) {
+        let updatedVariants = prod.variants ? [...prod.variants] : [];
+        if (updatedVariants.length > 0) {
+          updatedVariants = updatedVariants.map((v) => {
+            const isMatch =
+              (it.selected_variant_id && v.id === it.selected_variant_id) ||
+              ((!it.selected_color || (v.color || '').toLowerCase() === it.selected_color.toLowerCase()) &&
+               (!it.selected_size || (v.size || '').toLowerCase() === it.selected_size.toLowerCase()));
+            if (isMatch) {
+              const newVarStock = Math.max(0, (Number(v.stock_quantity) || 0) - it.quantity);
+              return {
+                ...v,
+                stock_quantity: newVarStock,
+                in_stock: newVarStock > 0,
+              };
+            }
+            return v;
+          });
+        }
+
+        const newBaseStock = Math.max(0, (Number(prod.stock_quantity) || 0) - it.quantity);
+        const newInStock = updatedVariants.length > 0
+          ? updatedVariants.some((v) => (Number(v.stock_quantity) || 0) > 0)
+          : newBaseStock > 0;
+
+        setBaseProducts((prev) =>
+          prev.map((p) =>
+            p.id === prod.id
+              ? {
+                  ...p,
+                  stock_quantity: newBaseStock,
+                  in_stock: newInStock,
+                  variants: updatedVariants,
+                }
+              : p
+          )
+        );
+
+        if (isSupabaseConfigured()) {
+          const supabase = getSupabase();
+          if (supabase) {
+            const rawSpecs: any = prod.specs;
+            const updatedSpecsPayload = typeof rawSpecs === 'object' && rawSpecs !== null && !Array.isArray(rawSpecs)
+              ? { ...(rawSpecs as Record<string, any>), variants: updatedVariants }
+              : { items: Array.isArray(rawSpecs) ? rawSpecs : [], variants: updatedVariants };
+
+            try {
+              const query = supabase
+                .from('products')
+                .update({
+                  stock: newBaseStock,
+                  specs: updatedSpecsPayload,
+                })
+                .eq('id', prod.id);
+
+              if (query && typeof (query as any).then === 'function') {
+                (query as any).then(
+                  () => {},
+                  (err: any) => console.warn('Supabase stock decrement notice:', err)
+                );
+              }
+            } catch (err) {
+              console.warn('Supabase stock decrement notice:', err);
+            }
           }
         }
       }
@@ -1812,6 +1979,25 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ? [(productData as any).image_url]
       : ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&q=80'];
 
+    // Rich specifications bundle (variants, colors, sizes, size_chart, brand, sku) inside specs JSONB column
+    const specsItems = Array.isArray(productData.specs)
+      ? productData.specs
+      : (productData.specs && typeof productData.specs === 'object' && Array.isArray((productData.specs as any).items)
+        ? (productData.specs as any).items
+        : [{ label: 'Brand', value: productData.brand || 'Zevora' }]);
+
+    const richSpecs = {
+      items: specsItems,
+      variants: productData.variants || [],
+      colors: productData.colors || [],
+      sizes: productData.sizes || [],
+      size_chart: productData.size_chart || null,
+      brand: productData.brand || 'Zevora',
+      sku: productData.sku || '',
+      subcategory: productData.subcategory || '',
+      color_variants: productData.color_variants || [],
+    };
+
     // EXACT Supabase products table columns: id, name, description, price, mrp, discount_percent, stock, category_id, images, rating, rating_count, brand, is_featured, specs
     // Absolutely NO category_name column (matches real Supabase schema cache)
     const dbPayload = {
@@ -1826,11 +2012,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       images: images,
       rating: Number(productData.rating) || 4.7,
       rating_count: Number(productData.review_count ?? (productData as any).rating_count ?? 1),
-      brand: (productData as any).brand || 'General',
+      brand: productData.brand || 'Zevora',
       is_featured: Boolean(productData.is_featured),
-      specs: Array.isArray(productData.specs) || typeof productData.specs === 'object'
-        ? productData.specs
-        : [{ label: 'Standard', value: 'Original' }],
+      specs: richSpecs,
     };
 
     let savedSuccessfully = false;
@@ -1878,7 +2062,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       rating: dbPayload.rating,
       review_count: dbPayload.rating_count,
       images: dbPayload.images,
-      specs: Array.isArray(dbPayload.specs) ? dbPayload.specs : [],
+      specs: specsItems,
+      brand: richSpecs.brand,
+      sku: richSpecs.sku,
+      subcategory: richSpecs.subcategory,
+      variants: richSpecs.variants,
+      colors: richSpecs.colors,
+      sizes: richSpecs.sizes,
+      size_chart: richSpecs.size_chart || undefined,
+      color_variants: richSpecs.color_variants,
       created_at: new Date().toISOString(),
     };
 
@@ -1918,6 +2110,36 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if ((updates as any).brand !== undefined) dbUpdates.brand = (updates as any).brand;
     if (updates.is_featured !== undefined) dbUpdates.is_featured = Boolean(updates.is_featured);
     if (updates.specs !== undefined) dbUpdates.specs = updates.specs;
+
+    if (
+      updates.variants !== undefined ||
+      updates.colors !== undefined ||
+      updates.sizes !== undefined ||
+      updates.size_chart !== undefined ||
+      updates.sku !== undefined ||
+      updates.subcategory !== undefined ||
+      updates.color_variants !== undefined
+    ) {
+      const existingProd = baseProducts.find((p) => p.id === id);
+      const prevSpecs = existingProd?.specs;
+      const specsItems = Array.isArray(prevSpecs)
+        ? prevSpecs
+        : (prevSpecs && typeof prevSpecs === 'object' && Array.isArray((prevSpecs as any).items)
+          ? (prevSpecs as any).items
+          : []);
+
+      dbUpdates.specs = {
+        items: updates.specs !== undefined && Array.isArray(updates.specs) ? updates.specs : specsItems,
+        variants: updates.variants !== undefined ? updates.variants : (existingProd?.variants || []),
+        colors: updates.colors !== undefined ? updates.colors : (existingProd?.colors || []),
+        sizes: updates.sizes !== undefined ? updates.sizes : (existingProd?.sizes || []),
+        size_chart: updates.size_chart !== undefined ? updates.size_chart : (existingProd?.size_chart || null),
+        brand: updates.brand !== undefined ? updates.brand : (existingProd?.brand || 'Zevora'),
+        sku: updates.sku !== undefined ? updates.sku : (existingProd?.sku || ''),
+        subcategory: updates.subcategory !== undefined ? updates.subcategory : (existingProd?.subcategory || ''),
+        color_variants: updates.color_variants !== undefined ? updates.color_variants : (existingProd?.color_variants || []),
+      };
+    }
 
     // Never include category_name in dbUpdates
     let updatedRemotely = false;

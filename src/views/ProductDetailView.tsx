@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Product } from '../types';
 import {
@@ -20,8 +20,19 @@ import {
   ZoomIn,
   ZoomOut,
   X,
+  Ruler,
+  Check,
+  AlertCircle,
 } from 'lucide-react';
 import { ProductReviews } from '../components/ProductReviews';
+import { SizeChartModal } from '../components/SizeChartModal';
+import {
+  findVariant,
+  getColorImages,
+  getColorStock,
+  getSizeStock,
+  isSizeInStock,
+} from '../utils/variants';
 
 export const ProductDetailView: React.FC = () => {
   const {
@@ -48,9 +59,21 @@ export const ProductDetailView: React.FC = () => {
     : (product?.rating || 4.5);
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [selectedColor, setSelectedColor] = useState(product?.colors?.[0]?.name || 'Standard');
+  const [selectedColor, setSelectedColor] = useState(product?.colors?.[0]?.name || '');
   const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState(product?.sizes?.[0] || '');
+  const [selectedSize, setSelectedSize] = useState('');
+  const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
+  const [sizeErrorPrompt, setSizeErrorPrompt] = useState(false);
+
+  // Sync state if selected product changes
+  useEffect(() => {
+    if (product) {
+      setSelectedColor(product.colors?.[0]?.name || '');
+      setSelectedSize('');
+      setActiveImageIndex(0);
+      setSizeErrorPrompt(false);
+    }
+  }, [product?.id]);
 
   // Gallery interactive zoom & fullscreen states
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
@@ -59,6 +82,56 @@ export const ProductDetailView: React.FC = () => {
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  // Dynamic image list based on selected color
+  const colorImages = useMemo(() => {
+    if (!product) return [];
+    return getColorImages(product, selectedColor);
+  }, [product, selectedColor]);
+
+  const imageList = (colorImages && colorImages.length > 0)
+    ? colorImages
+    : ((product?.images && product.images.length > 0)
+      ? product.images
+      : ['https://placehold.co/600x600/png?text=Product']);
+
+  // Reset active image index if out of range when color changes
+  useEffect(() => {
+    if (activeImageIndex >= imageList.length) {
+      setActiveImageIndex(0);
+    }
+  }, [imageList.length]);
+
+  // Matched variant
+  const activeVariant = useMemo(() => {
+    if (!product) return undefined;
+    return findVariant(product, selectedColor, selectedSize);
+  }, [product, selectedColor, selectedSize]);
+
+  // Dynamic pricing
+  const currentPrice = activeVariant?.price ?? product?.price ?? 0;
+  const currentMrp = activeVariant?.original_price ?? product?.original_price ?? currentPrice;
+  const currentDiscountPercent = currentMrp > currentPrice
+    ? Math.round(((currentMrp - currentPrice) / currentMrp) * 100)
+    : (product?.discount_percent ?? 0);
+
+  // Dynamic stock
+  const currentStock = useMemo(() => {
+    if (!product) return 0;
+    if (activeVariant) {
+      return Number(activeVariant.stock_quantity) || 0;
+    }
+    if (selectedSize) {
+      return getSizeStock(product, selectedSize, selectedColor);
+    }
+    if (selectedColor && (!product.sizes || product.sizes.length === 0)) {
+      return getColorStock(product, selectedColor);
+    }
+    return product.stock_quantity;
+  }, [product, activeVariant, selectedSize, selectedColor]);
+
+  const hasSizes = Boolean(product?.sizes && product.sizes.length > 0);
+  const isAvailableToBuy = Boolean(product?.in_stock && currentStock > 0);
 
   if (!product) {
     return (
@@ -73,10 +146,6 @@ export const ProductDetailView: React.FC = () => {
       </div>
     );
   }
-
-  const imageList = (product.images && product.images.length > 0)
-    ? product.images
-    : ['https://placehold.co/600x600/png?text=Product'];
 
   // Navigation handlers
   const handlePrevImage = () => {
@@ -136,8 +205,38 @@ export const ProductDetailView: React.FC = () => {
 
   const isWishlisted = isInWishlist(product.id);
 
+  const handleAddToCart = () => {
+    if (hasSizes && !selectedSize) {
+      setSizeErrorPrompt(true);
+      showToast('Please select a size first.', 'error');
+      document.getElementById('size-selector-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => setSizeErrorPrompt(false), 2500);
+      return;
+    }
+
+    if (!isAvailableToBuy) {
+      showToast(`${product.name} is Out of Stock.`, 'error');
+      return;
+    }
+
+    addToCart(product, quantity, selectedColor, selectedSize, activeVariant);
+  };
+
   const handleBuyNow = () => {
-    addToCart(product, quantity, selectedColor, selectedSize);
+    if (hasSizes && !selectedSize) {
+      setSizeErrorPrompt(true);
+      showToast('Please select a size first.', 'error');
+      document.getElementById('size-selector-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => setSizeErrorPrompt(false), 2500);
+      return;
+    }
+
+    if (!isAvailableToBuy) {
+      showToast(`${product.name} is Out of Stock.`, 'error');
+      return;
+    }
+
+    addToCart(product, quantity, selectedColor, selectedSize, activeVariant);
     navigateTo('checkout');
   };
 
@@ -336,7 +435,7 @@ export const ProductDetailView: React.FC = () => {
             </h1>
 
             {/* Ratings & Stock */}
-            <div className="flex items-center gap-3 mt-2">
+            <div className="flex items-center gap-3 mt-2 flex-wrap">
               <a
                 href="#customer-reviews"
                 onClick={(e) => {
@@ -350,38 +449,49 @@ export const ProductDetailView: React.FC = () => {
                 <span>{avgRating}</span>
                 <span className="text-amber-700/80">({reviewCount} reviews)</span>
               </a>
-              {product.in_stock && product.stock_quantity > 0 ? (
-                <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                  In Stock ({product.stock_quantity} available)
+
+              {isAvailableToBuy ? (
+                <span className="text-xs text-emerald-600 font-bold flex items-center gap-1.5 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                  In Stock ({currentStock} available)
                 </span>
               ) : (
-                <span className="text-xs text-rose-600 font-bold flex items-center gap-1 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">
+                <span className="text-xs text-rose-600 font-bold flex items-center gap-1.5 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-md">
                   <span className="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>
                   Out of Stock
                 </span>
               )}
+
+              {activeVariant?.sku ? (
+                <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                  SKU: {activeVariant.sku}
+                </span>
+              ) : product.sku ? (
+                <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                  SKU: {product.sku}
+                </span>
+              ) : null}
             </div>
           </div>
 
           {/* Price Block */}
           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-baseline gap-3">
             <span className="text-3xl font-extrabold text-slate-900 tabular-nums">
-              ₹{product.price.toLocaleString('en-IN')}
+              ₹{currentPrice.toLocaleString('en-IN')}
             </span>
-            {product.original_price > product.price && (
+            {currentMrp > currentPrice && (
               <>
                 <span className="text-base text-slate-400 line-through tabular-nums">
-                  ₹{product.original_price.toLocaleString('en-IN')}
+                  ₹{currentMrp.toLocaleString('en-IN')}
                 </span>
                 <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                  {product.discount_percent}% OFF
+                  {currentDiscountPercent}% OFF
                 </span>
               </>
             )}
           </div>
 
-          {/* Spec Badges Grid (Matching Reference Screen 4) */}
+          {/* Spec Badges Grid */}
           {product.specs && product.specs.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {product.specs.map((spec, idx) => (
@@ -400,90 +510,207 @@ export const ProductDetailView: React.FC = () => {
           {/* Color Selector */}
           {product.colors && product.colors.length > 0 && (
             <div className="space-y-2">
-              <span className="text-xs font-bold text-slate-700">
-                Color: <strong className="text-slate-900">{selectedColor}</strong>
-              </span>
-              <div className="flex items-center gap-3">
-                {product.colors.map((c) => (
-                  <button
-                    key={c.name}
-                    onClick={() => setSelectedColor(c.name)}
-                    className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-                      selectedColor === c.name ? 'ring-2 ring-blue-600 ring-offset-2' : 'hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: c.hex }}
-                    title={c.name}
-                  >
-                    {selectedColor === c.name && (
-                      <span
-                        className={`w-2.5 h-2.5 rounded-full ${
-                          ['#fbcfe8', '#bbf7d0', '#e2e8f0', '#ffffff', '#cbd5e1'].includes(c.hex.toLowerCase())
-                            ? 'bg-slate-900'
-                            : 'bg-white'
-                        }`}
-                      />
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700">
+                  Select Color: <strong className="text-slate-900">{selectedColor || 'Choose a color'}</strong>
+                </span>
+                {selectedColor && (
+                  <span className="text-[11px] font-medium text-slate-500">
+                    {getColorStock(product, selectedColor) > 0 ? (
+                      <span className="text-emerald-600 font-semibold">
+                        {getColorStock(product, selectedColor)} in stock
+                      </span>
+                    ) : (
+                      <span className="text-rose-500 font-semibold">Out of stock</span>
                     )}
-                  </button>
-                ))}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                {product.colors.map((c) => {
+                  const cStock = getColorStock(product, c.name);
+                  const isOut = cStock <= 0;
+                  const isSel = selectedColor.toLowerCase() === c.name.toLowerCase();
+
+                  return (
+                    <button
+                      key={c.name}
+                      type="button"
+                      onClick={() => {
+                        setSelectedColor(c.name);
+                        setActiveImageIndex(0);
+                      }}
+                      className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                        isSel
+                          ? 'border-blue-600 bg-blue-50/70 ring-2 ring-blue-500/30 shadow-xs'
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                      } ${isOut ? 'opacity-60' : ''}`}
+                      title={`${c.name} (${cStock} in stock)`}
+                    >
+                      <span
+                        className="w-4 h-4 rounded-full border border-black/20 shadow-2xs shrink-0"
+                        style={{ backgroundColor: c.hex }}
+                      />
+                      <span className={`text-xs font-bold ${isSel ? 'text-blue-900' : 'text-slate-700'}`}>
+                        {c.name}
+                      </span>
+                      {isSel && <Check className="w-3.5 h-3.5 text-blue-600 stroke-[3]" />}
+                      {isOut && (
+                        <span className="text-[9px] text-rose-500 font-medium">Sold out</span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* Size Selector if available */}
-          {product.sizes && product.sizes.length > 0 && (
-            <div className="space-y-2">
-              <span className="text-xs font-bold text-slate-700">Select Size</span>
-              <div className="flex flex-wrap gap-2">
-                {product.sizes.map((sz) => (
-                  <button
-                    key={sz}
-                    onClick={() => setSelectedSize(sz)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      selectedSize === sz
-                        ? 'bg-slate-900 text-white shadow-xs'
-                        : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    {sz}
-                  </button>
-                ))}
+          {/* Size Selector with Size Chart */}
+          {hasSizes && (
+            <div
+              id="size-selector-section"
+              className={`space-y-2.5 p-3.5 rounded-2xl transition-all ${
+                sizeErrorPrompt
+                  ? 'border-2 border-rose-500 bg-rose-50/50 shadow-md ring-4 ring-rose-500/20'
+                  : 'bg-slate-50/70 border border-slate-200/80'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-800">
+                    Select Size
+                  </span>
+                  {selectedSize ? (
+                    <span className="text-xs font-extrabold text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-md border border-blue-200">
+                      {selectedSize}
+                    </span>
+                  ) : (
+                    <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                      Required *
+                    </span>
+                  )}
+                </div>
+
+                {/* Clickable Size Chart Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsSizeChartOpen(true)}
+                  className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 bg-white hover:bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-200 shadow-2xs transition-all cursor-pointer group"
+                >
+                  <Ruler className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform" />
+                  <span>Size Chart</span>
+                </button>
               </div>
+
+              {/* Functional Size Buttons Grid */}
+              <div className="flex flex-wrap gap-2 pt-1">
+                {product.sizes!.map((sz) => {
+                  const inStock = isSizeInStock(product, sz, selectedColor);
+                  const szStock = getSizeStock(product, sz, selectedColor);
+                  const isSelected = selectedSize.toLowerCase() === sz.toLowerCase();
+
+                  return (
+                    <button
+                      key={sz}
+                      type="button"
+                      disabled={!inStock}
+                      onClick={() => {
+                        if (inStock) {
+                          setSelectedSize(sz);
+                          setSizeErrorPrompt(false);
+                        }
+                      }}
+                      className={`relative min-w-14 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center cursor-pointer ${
+                        !inStock
+                          ? 'bg-slate-100 text-slate-400 border border-slate-200/80 cursor-not-allowed opacity-50 line-through'
+                          : isSelected
+                          ? 'bg-slate-900 text-white shadow-md ring-2 ring-blue-600 ring-offset-2'
+                          : 'bg-white border border-slate-200 text-slate-800 hover:border-slate-400 hover:bg-slate-50'
+                      }`}
+                      title={!inStock ? `${sz} is Out of stock` : `${sz} (${szStock} available)`}
+                    >
+                      <span className="text-xs">{sz}</span>
+                      {!inStock && (
+                        <span className="text-[8px] no-underline font-bold text-rose-500 uppercase tracking-tighter">
+                          Sold Out
+                        </span>
+                      )}
+                      {inStock && szStock > 0 && szStock <= 5 && (
+                        <span
+                          className={`text-[8px] font-medium tracking-tight ${
+                            isSelected ? 'text-amber-300' : 'text-amber-600'
+                          }`}
+                        >
+                          Only {szStock} left
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {sizeErrorPrompt && (
+                <p className="text-xs text-rose-600 font-bold flex items-center gap-1 animate-in fade-in">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Please choose your size before adding to cart or purchasing.</span>
+                </p>
+              )}
+
+              {selectedSize && (
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-600 pt-1">
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>
+                    Selected: <strong className="text-slate-900">{selectedSize}</strong>
+                    {selectedColor ? ` • ${selectedColor}` : ''}
+                    {activeVariant?.sku ? ` • SKU: ${activeVariant.sku}` : ''}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
           {/* Quantity Stepper & Add to Cart */}
           <div className="space-y-3 pt-2">
             <div className="flex items-center gap-4">
-              <div className={`flex items-center border rounded-xl p-1 ${product.in_stock ? 'border-slate-200 bg-white' : 'border-slate-200 bg-slate-100 opacity-60'}`}>
+              <div
+                className={`flex items-center border rounded-xl p-1 ${
+                  isAvailableToBuy ? 'border-slate-200 bg-white' : 'border-slate-200 bg-slate-100 opacity-60'
+                }`}
+              >
                 <button
-                  disabled={!product.in_stock}
+                  type="button"
+                  disabled={!isAvailableToBuy}
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-700 transition-colors disabled:cursor-not-allowed"
+                  className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-700 transition-colors disabled:cursor-not-allowed cursor-pointer"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
                 <span className="w-10 text-center text-sm font-bold text-slate-900 tabular-nums">
-                  {product.in_stock ? quantity : 0}
+                  {isAvailableToBuy ? quantity : 0}
                 </span>
                 <button
-                  disabled={!product.in_stock}
-                  onClick={() => setQuantity((q) => Math.min(product.stock_quantity, q + 1))}
-                  className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-700 transition-colors disabled:cursor-not-allowed"
+                  type="button"
+                  disabled={!isAvailableToBuy}
+                  onClick={() => setQuantity((q) => Math.min(currentStock, q + 1))}
+                  className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-700 transition-colors disabled:cursor-not-allowed cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              {product.in_stock ? (
+              {isAvailableToBuy ? (
                 <button
-                  onClick={() => addToCart(product, quantity, selectedColor, selectedSize)}
-                  className="flex-1 py-3 px-6 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold rounded-xl shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 transition-all"
+                  type="button"
+                  onClick={handleAddToCart}
+                  className="flex-1 py-3 px-6 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold rounded-xl shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <ShoppingCart className="w-4 h-4" />
                   <span>Add to Cart</span>
                 </button>
               ) : (
                 <button
+                  type="button"
                   disabled
                   className="flex-1 py-3 px-6 bg-slate-100 text-slate-400 font-bold rounded-xl border border-slate-200 flex items-center justify-center gap-2 cursor-not-allowed"
                 >
@@ -497,7 +724,7 @@ export const ProductDetailView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => toggleWishlist(product)}
-                className={`py-2.5 px-3.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                className={`py-2.5 px-3.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   isWishlisted
                     ? 'border-pink-300 text-pink-600 bg-pink-50'
                     : 'border-slate-200 hover:bg-slate-50 text-slate-700'
@@ -510,7 +737,7 @@ export const ProductDetailView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => toggleComparison(product)}
-                className={`py-2.5 px-3.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                className={`py-2.5 px-3.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   isCompared
                     ? 'border-blue-400 text-blue-700 bg-blue-50 shadow-2xs'
                     : 'border-slate-200 hover:bg-slate-50 text-slate-700'
@@ -521,16 +748,18 @@ export const ProductDetailView: React.FC = () => {
                 <span>{isCompared ? 'In Compare' : 'Compare'}</span>
               </button>
 
-              {product.in_stock ? (
+              {isAvailableToBuy ? (
                 <button
+                  type="button"
                   onClick={handleBuyNow}
-                  className="flex-1 py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                  className="flex-1 py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
                 >
                   <Zap className="w-4 h-4 text-amber-400" />
                   <span>Buy Now</span>
                 </button>
               ) : (
                 <button
+                  type="button"
                   disabled
                   className="flex-1 py-2.5 px-4 bg-slate-100 text-slate-400 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-not-allowed border border-slate-200"
                 >
@@ -746,6 +975,20 @@ export const ProductDetailView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Size Chart Modal */}
+      <SizeChartModal
+        isOpen={isSizeChartOpen}
+        onClose={() => setIsSizeChartOpen(false)}
+        productName={product.name}
+        categoryName={product.category_name}
+        customChart={product.size_chart}
+        selectedSize={selectedSize}
+        onSelectSize={(sz) => {
+          setSelectedSize(sz);
+          setSizeErrorPrompt(false);
+        }}
+      />
     </div>
   );
 };

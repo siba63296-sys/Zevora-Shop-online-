@@ -223,6 +223,26 @@ export const OrderHistoryView: React.FC = () => {
                     {order.items.length > 1 ? ` + ${order.items.length - 1} more` : ''}
                   </p>
 
+                  {primaryItem && (primaryItem.size || primaryItem.color) && (
+                    <div className="flex items-center gap-1.5 flex-wrap mt-0.5 text-[10px] text-slate-500">
+                      {primaryItem.size && (
+                        <span className="font-bold text-blue-700 bg-blue-50 px-1 py-0.2 rounded border border-blue-200">
+                          Size: {primaryItem.size}
+                        </span>
+                      )}
+                      {primaryItem.color && (
+                        <span className="text-slate-600">
+                          Color: <strong>{primaryItem.color}</strong>
+                        </span>
+                      )}
+                      {primaryItem.variant_sku && (
+                        <span className="font-mono text-[9px] text-slate-400">
+                          ({primaryItem.variant_sku})
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-500">
                     <span className="font-extrabold text-slate-900 tabular-nums">
                       ₹{order.total_amount.toLocaleString('en-IN')}
@@ -418,7 +438,20 @@ export const OrderHistoryView: React.FC = () => {
                       </div>
                       <div>
                         <p className="font-bold text-slate-900">{item.product_name}</p>
-                        <p className="text-slate-400">Qty: {item.quantity} {item.color ? `· Color: ${item.color}` : ''}</p>
+                        <p className="text-slate-500 text-[11px] flex items-center gap-1.5 flex-wrap">
+                          <span>Qty: {item.quantity}</span>
+                          {item.color && <span>· Color: <strong className="text-slate-700">{item.color}</strong></span>}
+                          {item.size && (
+                            <span className="font-bold text-blue-700 bg-blue-50 px-1 py-0.2 rounded border border-blue-200">
+                              Size: {item.size}
+                            </span>
+                          )}
+                          {item.variant_sku && (
+                            <span className="font-mono text-[10px] text-slate-400">
+                              ({item.variant_sku})
+                            </span>
+                          )}
+                        </p>
                       </div>
                     </div>
                     <span className="font-bold text-slate-900 tabular-nums">

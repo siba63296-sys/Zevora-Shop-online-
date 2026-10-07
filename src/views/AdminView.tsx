@@ -3,6 +3,7 @@ import { useStore } from '../context/StoreContext';
 import { Product, Category, OrderStatus, Order, Offer, Coupon, StoreSettings } from '../types';
 import { uploadProductImageToSupabase, uploadBannerImageToSupabase } from '../lib/supabase';
 import { generateSupabaseDemoSeedSql } from '../data/supabaseSeedSql';
+import { ProductVariantDashboard } from '../components/ProductVariantDashboard';
 import {
   ShieldCheck,
   Package,
@@ -84,7 +85,9 @@ export const AdminView: React.FC = () => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Dashboard active tab
-  const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'offers' | 'orders' | 'customers' | 'coupons' | 'settings' | 'database'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'variant_manager' | 'categories' | 'offers' | 'orders' | 'customers' | 'coupons' | 'settings' | 'database'>('products');
+  const [productCategoryFilter, setProductCategoryFilter] = useState('all');
+  const [productStockFilter, setProductStockFilter] = useState<'all' | 'in_stock' | 'out_of_stock'>('all');
 
   // Modals & Forms
   const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -737,11 +740,25 @@ export const AdminView: React.FC = () => {
   const totalProductsCount = products.length;
 
   // Filtered products
-  const filteredProducts = products.filter(
-    (p) =>
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch =
+      !searchTerm ||
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.category_name && p.category_name.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+      (p.category_name && p.category_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (p.brand && p.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const matchesCategory =
+      productCategoryFilter === 'all' || p.category_id === productCategoryFilter;
+
+    const matchesStock =
+      productStockFilter === 'all' ||
+      (productStockFilter === 'in_stock'
+        ? (p.in_stock && (p.stock_quantity ?? 1) > 0)
+        : (!p.in_stock || (p.stock_quantity ?? 0) <= 0));
+
+    return matchesSearch && matchesCategory && matchesStock;
+  });
 
   // SCREEN: ADMIN LOGIN (When not authenticated - Setup and Public Registration Removed)
   if (!isAdmin) {
@@ -927,7 +944,7 @@ export const AdminView: React.FC = () => {
       <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto pb-1">
         <button
           onClick={() => setActiveTab('products')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 ${
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
             activeTab === 'products'
               ? 'bg-blue-600 text-white shadow-xs'
               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -938,8 +955,20 @@ export const AdminView: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('variant_manager')}
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
+            activeTab === 'variant_manager'
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs'
+              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+          <span>Product &amp; Variant Manager</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('categories')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 ${
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
             activeTab === 'categories'
               ? 'bg-blue-600 text-white shadow-xs'
               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -951,7 +980,7 @@ export const AdminView: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('offers')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 ${
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
             activeTab === 'offers'
               ? 'bg-blue-600 text-white shadow-xs'
               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -963,7 +992,7 @@ export const AdminView: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('orders')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 ${
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
             activeTab === 'orders'
               ? 'bg-blue-600 text-white shadow-xs'
               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -975,7 +1004,7 @@ export const AdminView: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('customers')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 ${
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
             activeTab === 'customers'
               ? 'bg-blue-600 text-white shadow-xs'
               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -987,7 +1016,7 @@ export const AdminView: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('coupons')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 ${
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
             activeTab === 'coupons'
               ? 'bg-blue-600 text-white shadow-xs'
               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -999,7 +1028,7 @@ export const AdminView: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('settings')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 ${
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
             activeTab === 'settings'
               ? 'bg-blue-600 text-white shadow-xs'
               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -1011,7 +1040,7 @@ export const AdminView: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('database')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 ${
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
             activeTab === 'database'
               ? 'bg-blue-600 text-white shadow-xs'
               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -1022,112 +1051,272 @@ export const AdminView: React.FC = () => {
         </button>
       </div>
 
-      {/* 1. PRODUCTS TAB */}
+      {/* 1. PRODUCTS TAB (Original Product Management with List, Search, Edit, Delete) */}
       {activeTab === 'products' && (
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="relative flex-1 max-w-sm">
-              <input
-                type="text"
-                placeholder="Search products in catalog..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400"
-              />
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Manage Store Products</h3>
+              <p className="text-xs text-slate-500">
+                View, search, edit and delete catalog products. For multi-size/color variant matrix &amp; custom size charts, use the dedicated{' '}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('variant_manager')}
+                  className="text-blue-600 hover:underline font-bold inline cursor-pointer"
+                >
+                  Product &amp; Variant Manager
+                </button>{' '}
+                tab.
+              </p>
             </div>
-
-            <button
-              onClick={() => {
-                resetProductForm();
-                setEditingProduct(null);
-                setShowAddProductModal(true);
-              }}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add New Product</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab('variant_manager')}
+                className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Open advanced variants manager"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Variant Manager</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  resetProductForm();
+                  setEditingProduct(null);
+                  setShowAddProductModal(true);
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Product</span>
+              </button>
+            </div>
           </div>
 
-          {/* Product Table */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-2xs overflow-hidden">
+          {/* Search & Filter Bar */}
+          <div className="p-3 bg-white rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search products by title, brand, category, SKU..."
+                className="w-full pl-9 pr-9 py-2 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <select
+                value={productCategoryFilter}
+                onChange={(e) => setProductCategoryFilter(e.target.value)}
+                className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 focus:outline-hidden focus:border-blue-500 cursor-pointer"
+              >
+                <option value="all">All Categories</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={productStockFilter}
+                onChange={(e) => setProductStockFilter(e.target.value as any)}
+                className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 focus:outline-hidden focus:border-blue-500 cursor-pointer"
+              >
+                <option value="all">All Stock Status</option>
+                <option value="in_stock">In Stock Only</option>
+                <option value="out_of_stock">Out of Stock Only</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Products Table */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-100">
-                  <tr>
-                    <th className="p-3.5">Product</th>
-                    <th className="p-3.5">Category</th>
-                    <th className="p-3.5">Price</th>
-                    <th className="p-3.5">Stock</th>
-                    <th className="p-3.5">Discount</th>
-                    <th className="p-3.5 text-right">Actions</th>
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-slate-50/80 text-slate-500 font-bold border-b border-slate-200">
+                    <th className="py-3 px-4">Product</th>
+                    <th className="py-3 px-4">Category</th>
+                    <th className="py-3 px-4">Price</th>
+                    <th className="py-3 px-4">Stock</th>
+                    <th className="py-3 px-4">Variants</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredProducts.map((prod) => (
-                    <tr key={prod.id} className="hover:bg-slate-50/50">
-                      <td className="p-3.5 flex items-center gap-3">
-                        <img
-                          src={prod.images[0]}
-                          alt=""
-                          referrerPolicy="no-referrer"
-                          className="w-10 h-10 rounded-lg object-contain bg-slate-50 p-1 border border-slate-100 shrink-0"
-                        />
-                        <div className="min-w-0">
-                          <p className="font-bold text-slate-900 truncate max-w-xs">{prod.name}</p>
-                          <p className="text-[10px] text-slate-400 truncate">ID: {prod.id}</p>
-                        </div>
-                      </td>
-                      <td className="p-3.5 text-slate-600 font-medium">
-                        {prod.category_name || 'General'}
-                      </td>
-                      <td className="p-3.5 font-bold text-slate-900 tabular-nums">
-                        ₹{prod.price.toLocaleString('en-IN')}
-                      </td>
-                      <td className="p-3.5">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            prod.stock_quantity > 0
-                              ? 'bg-emerald-50 text-emerald-700'
-                              : 'bg-rose-50 text-rose-700'
-                          }`}
-                        >
-                          {prod.stock_quantity} left
-                        </span>
-                      </td>
-                      <td className="p-3.5 text-slate-600 tabular-nums">
-                        {prod.discount_percent > 0 ? `${prod.discount_percent}%` : '—'}
-                      </td>
-                      <td className="p-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1">
+                  {filteredProducts.map((prod) => {
+                    const primaryImg = (Array.isArray(prod.images) && prod.images[0]) || (prod as any).image_url || 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&q=80';
+                    const stockQty = prod.stock_quantity ?? 0;
+                    const inStock = prod.in_stock && stockQty > 0;
+                    const hasVars = (prod.variants && prod.variants.length > 0) || (prod.sizes && prod.sizes.length > 0) || (prod.colors && prod.colors.length > 0);
+
+                    return (
+                      <tr key={prod.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                              <img
+                                src={primaryImg}
+                                alt={prod.name}
+                                referrerPolicy="no-referrer"
+                                className="max-h-full max-w-full object-contain"
+                              />
+                            </div>
+                            <div className="min-w-0 max-w-xs">
+                              <p
+                                className="font-bold text-slate-900 truncate hover:text-blue-600 cursor-pointer"
+                                onClick={() => navigateTo('product_detail', { productId: prod.id })}
+                              >
+                                {prod.name}
+                              </p>
+                              <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400">
+                                {prod.brand && <span>{prod.brand}</span>}
+                                {prod.sku && (
+                                  <span className="font-mono text-[10px] bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200 text-slate-600">
+                                    SKU: {prod.sku}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-slate-600">
+                          <span className="bg-slate-100 px-2 py-0.5 rounded-md text-[11px] font-medium text-slate-700">
+                            {prod.category_name || categories.find((c) => c.id === prod.category_id)?.name || 'General'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="font-bold text-slate-900 tabular-nums">
+                            ₹{prod.price.toLocaleString('en-IN')}
+                          </div>
+                          {prod.original_price > prod.price && (
+                            <div className="text-[11px] text-slate-400 line-through tabular-nums">
+                              ₹{prod.original_price.toLocaleString('en-IN')}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          {inStock ? (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                              In Stock ({stockQty})
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                              Out of Stock
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-[11px] text-slate-500">
+                          {hasVars ? (
+                            <div className="space-y-0.5">
+                              {prod.sizes && prod.sizes.length > 0 && (
+                                <p className="text-[10px] text-blue-700 font-medium">
+                                  {prod.sizes.length} sizes ({prod.sizes.slice(0, 3).join(', ')}{prod.sizes.length > 3 ? '...' : ''})
+                                </p>
+                              )}
+                              {prod.colors && prod.colors.length > 0 && (
+                                <p className="text-[10px] text-purple-700 font-medium">
+                                  {prod.colors.length} colors
+                                </p>
+                              )}
+                              {prod.variants && prod.variants.length > 0 && (
+                                <p className="text-[10px] text-slate-500">
+                                  {prod.variants.length} variant rows
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">Single</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => navigateTo('product_detail', { productId: prod.id })}
+                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                              title="View in store"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openEditProduct(prod)}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                              title="Edit product"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(`Are you sure you want to delete "${prod.name}"?`)) {
+                                  deleteProduct(prod.id);
+                                  showToast(`Product "${prod.name}" deleted.`, 'info');
+                                }
+                              }}
+                              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              title="Delete product"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {filteredProducts.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-slate-400">
+                        <Package className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+                        <p className="font-bold text-slate-600 text-sm">No products found</p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          Try clearing your search query or filters.
+                        </p>
+                        {searchTerm && (
                           <button
-                            onClick={() => openEditProduct(prod)}
-                            className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors"
-                            title="Edit Product"
+                            type="button"
+                            onClick={() => setSearchTerm('')}
+                            className="mt-3 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 cursor-pointer"
                           >
-                            <Edit2 className="w-3.5 h-3.5" />
+                            Clear Search
                           </button>
-                          <button
-                            onClick={() => {
-                              if (confirm(`Delete "${prod.name}"?`)) {
-                                deleteProduct(prod.id);
-                              }
-                            }}
-                            className="p-1.5 hover:bg-rose-50 text-rose-600 rounded-lg transition-colors"
-                            title="Delete Product"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        )}
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
+
+            <div className="p-3 bg-slate-50/80 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+              <span>
+                Showing <strong>{filteredProducts.length}</strong> of <strong>{products.length}</strong> products
+              </span>
+              <span>Sorted by latest added</span>
+            </div>
           </div>
         </div>
+      )}
+
+      {/* 2. PRODUCT & VARIANT MANAGER TAB (Dedicated Advanced Variant Dashboard) */}
+      {activeTab === 'variant_manager' && (
+        <ProductVariantDashboard />
       )}
 
       {/* 2. CATEGORIES TAB */}

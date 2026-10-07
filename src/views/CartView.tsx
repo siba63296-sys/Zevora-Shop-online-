@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { ChevronLeft, Trash2, Plus, Minus, ArrowRight, ShoppingBag, ShieldCheck, Tag, X, Check, Ticket } from 'lucide-react';
+import { getColorImages } from '../utils/variants';
 
 export const CartView: React.FC = () => {
   const {
@@ -78,10 +79,14 @@ export const CartView: React.FC = () => {
               {/* Thumbnail */}
               <div
                 onClick={() => navigateTo('product_detail', { productId: item.product.id })}
-                className="w-20 h-20 bg-slate-50 rounded-xl p-2 flex items-center justify-center shrink-0 cursor-pointer overflow-hidden"
+                className="w-20 h-20 bg-slate-50 rounded-xl p-2 flex items-center justify-center shrink-0 cursor-pointer overflow-hidden border border-slate-100"
               >
                 <img
-                  src={item.product.images[0]}
+                  src={
+                    getColorImages(item.product, item.selected_color)[0] ||
+                    item.product.images[0] ||
+                    'https://placehold.co/100x100/png?text=Photo'
+                  }
                   alt={item.product.name}
                   referrerPolicy="no-referrer"
                   className="max-h-full max-w-full object-contain"
@@ -96,23 +101,30 @@ export const CartView: React.FC = () => {
                 >
                   {item.product.name}
                 </h3>
-                {item.selected_color && (
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Color: <span className="text-slate-600 font-medium">{item.selected_color}</span>
-                  </p>
-                )}
-                {item.selected_size && (
-                  <p className="text-xs text-slate-400">
-                    Size: <span className="text-slate-600 font-medium">{item.selected_size}</span>
-                  </p>
-                )}
+                <div className="flex items-center gap-2 flex-wrap mt-0.5 text-xs text-slate-500">
+                  {item.selected_color && (
+                    <span>
+                      Color: <strong className="text-slate-700">{item.selected_color}</strong>
+                    </span>
+                  )}
+                  {item.selected_size && (
+                    <span className="font-bold text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
+                      Size: {item.selected_size}
+                    </span>
+                  )}
+                  {item.selected_variant_sku && (
+                    <span className="font-mono text-[10px] text-slate-400">
+                      ({item.selected_variant_sku})
+                    </span>
+                  )}
+                </div>
                 <div className="mt-1 flex flex-wrap items-baseline gap-2">
                   <span className="text-sm font-extrabold text-slate-900 tabular-nums">
-                    ₹{(item.product.price * item.quantity).toLocaleString('en-IN')}
+                    ₹{((item.variant_price ?? item.product.price) * item.quantity).toLocaleString('en-IN')}
                   </span>
-                  {item.product.original_price > item.product.price && (
+                  {(item.variant_original_price ?? item.product.original_price) > (item.variant_price ?? item.product.price) && (
                     <span className="text-xs text-slate-400 line-through tabular-nums">
-                      ₹{(item.product.original_price * item.quantity).toLocaleString('en-IN')}
+                      ₹{((item.variant_original_price ?? item.product.original_price) * item.quantity).toLocaleString('en-IN')}
                     </span>
                   )}
                   {item.product.discount_percent > 0 && (
@@ -122,7 +134,7 @@ export const CartView: React.FC = () => {
                   )}
                   {item.quantity > 1 && (
                     <span className="text-[11px] text-slate-400 tabular-nums block sm:inline">
-                      (₹{item.product.price.toLocaleString('en-IN')} each)
+                      (₹{(item.variant_price ?? item.product.price).toLocaleString('en-IN')} each)
                     </span>
                   )}
                 </div>

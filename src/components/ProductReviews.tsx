@@ -216,7 +216,7 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ product }) => {
                   required
                   value={authorName}
                   onChange={(e) => setAuthorName(e.target.value)}
-                  placeholder="e.g. Rahul Sharma"
+                  placeholder="Your full name"
                   className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                 />
               </div>

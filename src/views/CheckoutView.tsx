@@ -278,8 +278,12 @@ export const CheckoutView: React.FC = () => {
             product_id: it.product_id,
             product_name: it.product.name,
             product_image: it.product.images[0] || '',
-            price: it.product.price,
-            original_price: it.product.original_price,
+            price: it.variant_price ?? it.product.price,
+            original_price: it.variant_original_price ?? it.product.original_price,
+            color: it.selected_color,
+            size: it.selected_size,
+            variant_sku: it.selected_variant_sku,
+            variant_id: it.selected_variant_id,
             applied_offer_id: it.product.applied_offer_id,
             category_id: it.product.category_id,
             quantity: it.quantity,
@@ -362,8 +366,12 @@ export const CheckoutView: React.FC = () => {
             product_id: it.product_id,
             product_name: it.product.name,
             product_image: it.product.images[0] || '',
-            price: it.product.price,
-            original_price: it.product.original_price,
+            price: it.variant_price ?? it.product.price,
+            original_price: it.variant_original_price ?? it.product.original_price,
+            color: it.selected_color,
+            size: it.selected_size,
+            variant_sku: it.selected_variant_sku,
+            variant_id: it.selected_variant_id,
             applied_offer_id: it.product.applied_offer_id,
             category_id: it.product.category_id,
             quantity: it.quantity,
@@ -1042,37 +1050,52 @@ export const CheckoutView: React.FC = () => {
 
             {/* Ordered Items Preview */}
             <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-              {cart.map((it) => (
-                <div key={it.id} className="flex items-center gap-3 bg-white p-2 rounded-xl border border-slate-100">
-                  <div className="w-10 h-10 bg-slate-50 rounded-lg p-1 flex items-center justify-center shrink-0 border border-slate-100">
-                    <img
-                      src={it.product.images[0]}
-                      alt={it.product.name}
-                      referrerPolicy="no-referrer"
-                      className="max-h-full max-w-full object-contain"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-slate-800 truncate text-xs">{it.product.name}</p>
-                    <p className="text-[11px] text-slate-400">Qty: {it.quantity}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="font-bold text-slate-900 tabular-nums">
-                      ₹{(it.product.price * it.quantity).toLocaleString('en-IN')}
+              {cart.map((it) => {
+                const itemPrice = it.variant_price ?? it.product.price;
+                const itemOriginal = it.variant_original_price ?? it.product.original_price;
+
+                return (
+                  <div key={it.id} className="flex items-center gap-3 bg-white p-2 rounded-xl border border-slate-100">
+                    <div className="w-10 h-10 bg-slate-50 rounded-lg p-1 flex items-center justify-center shrink-0 border border-slate-100">
+                      <img
+                        src={it.product.images[0]}
+                        alt={it.product.name}
+                        referrerPolicy="no-referrer"
+                        className="max-h-full max-w-full object-contain"
+                      />
                     </div>
-                    {it.product.original_price > it.product.price && (
-                      <div className="flex items-center gap-1 justify-end">
-                        <span className="text-[10px] text-slate-400 line-through tabular-nums">
-                          ₹{(it.product.original_price * it.quantity).toLocaleString('en-IN')}
-                        </span>
-                        <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 rounded">
-                          {it.product.discount_percent}% OFF
-                        </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-slate-800 truncate text-xs">{it.product.name}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap text-[11px] text-slate-500 mt-0.5">
+                        <span>Qty: {it.quantity}</span>
+                        {it.selected_color && <span>• {it.selected_color}</span>}
+                        {it.selected_size && (
+                          <span className="font-bold text-blue-700 bg-blue-50 px-1 py-0.2 rounded border border-blue-200">
+                            Size: {it.selected_size}
+                          </span>
+                        )}
+                        {it.selected_variant_sku && (
+                          <span className="font-mono text-[10px] text-slate-400">
+                            ({it.selected_variant_sku})
+                          </span>
+                        )}
                       </div>
-                    )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-bold text-slate-900 tabular-nums">
+                        ₹{(itemPrice * it.quantity).toLocaleString('en-IN')}
+                      </div>
+                      {itemOriginal > itemPrice && (
+                        <div className="flex items-center gap-1 justify-end">
+                          <span className="text-[10px] text-slate-400 line-through tabular-nums">
+                            ₹{(itemOriginal * it.quantity).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Price Calculation Breakdown */}
