@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="goldGrad1" x1="10%" y1="100%" x2="90%" y2="0%">
+      <stop offset="0%" stop-color="#A16207" />
+      <stop offset="20%" stop-color="#CA8A04" />
+      <stop offset="45%" stop-color="#FDE047" />
+      <stop offset="70%" stop-color="#EAB308" />
+      <stop offset="90%" stop-color="#CA8A04" />
+      <stop offset="100%" stop-color="#854D0E" />
+    </linearGradient>
+    <linearGradient id="swooshGrad" x1="0%" y1="90%" x2="100%" y2="10%">
+      <stop offset="0%" stop-color="#B45309" />
+      <stop offset="25%" stop-color="#EAB308" />
+      <stop offset="50%" stop-color="#FEF08A" />
+      <stop offset="80%" stop-color="#FACC15" />
+      <stop offset="100%" stop-color="#CA8A04" />
+    </linearGradient>
+    <linearGradient id="borderGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047" stop-opacity="0.6" />
+      <stop offset="50%" stop-color="#CA8A04" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#FACC15" stop-opacity="0.5" />
+    </linearGradient>
+    <filter id="glow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <!-- Luxury Black Background with Rounded Corners -->
+  <rect width="500" height="500" rx="108" fill="#08090b" />
+  <rect width="494" height="494" x="3" y="3" rx="105" fill="none" stroke="url(#borderGold)" stroke-width="2.5" />
+
+  <!-- Zevora Gold Emblem -->
+  <g filter="url(#glow)">
+    <!-- Top bar of Z with curved taper -->
+    <path d="M 138 145 C 158 122 188 114 220 114 L 324 114 C 304 134 280 152 260 168 L 196 168 C 174 168 152 158 138 145 Z" fill="url(#goldGrad1)" />
+
+    <!-- Dynamic Center Swoosh cutting through the Z -->
+    <path d="M 124 272 C 162 210 224 170 338 165 C 278 184 226 220 188 270 C 164 300 142 288 124 272 Z" fill="url(#swooshGrad)" />
+
+    <!-- Bottom Bar of Z -->
+    <path d="M 152 270 L 222 270 L 312 270 L 294 246 C 258 246 222 246 186 246 L 152 270 Z" fill="url(#goldGrad1)" />
+
+    <!-- Shopping Cart Icon on right side of Z -->
+    <g transform="translate(5, 5)">
+      <!-- Handle -->
+      <path d="M 276 190 L 296 190 L 308 218" fill="none" stroke="url(#goldGrad1)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
+      <!-- Basket -->
+      <path d="M 304 206 L 372 206 C 376 206 379 209 378 213 L 366 244 C 364 248 360 251 356 251 L 318 251 C 314 251 310 248 308 244 L 300 218" fill="none" stroke="url(#goldGrad1)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
+      <!-- Wheels -->
+      <circle cx="326" cy="268" r="7.5" fill="url(#swooshGrad)" />
+      <circle cx="356" cy="268" r="7.5" fill="url(#swooshGrad)" />
+    </g>
+  </g>
+</svg>

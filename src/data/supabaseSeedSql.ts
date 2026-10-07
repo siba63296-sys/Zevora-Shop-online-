@@ -7,11 +7,6 @@ const CATEGORY_SLUG_MAP: Record<string, { slug: string; name: string }> = {
   'cat-fashion': { slug: 'fashion', name: 'Fashion' },
   'cat-jewellery': { slug: 'girls-jewellery', name: "Girls' Jewellery" },
   'cat-footwear': { slug: 'shoes-footwear', name: 'Shoes & Footwear' },
-  'cat-home': { slug: 'home-living', name: 'Home & Living' },
-  'cat-beauty': { slug: 'beauty-personal-care', name: 'Beauty & Personal Care' },
-  'cat-sports': { slug: 'sports-fitness', name: 'Sports & Fitness' },
-  'cat-toys': { slug: 'toys-games', name: 'Toys & Games' },
-  'cat-books': { slug: 'books-stationery', name: 'Books & Stationery' },
   'cat-girls-collection': { slug: 'girls-collection', name: 'Girls Collection' },
 };
 
@@ -36,21 +31,6 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.categories WHERE slug = 'shoes-footwear') THEN
     INSERT INTO public.categories (name, slug) VALUES ('Shoes & Footwear', 'shoes-footwear');
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.categories WHERE slug = 'home-living') THEN
-    INSERT INTO public.categories (name, slug) VALUES ('Home & Living', 'home-living');
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.categories WHERE slug = 'beauty-personal-care') THEN
-    INSERT INTO public.categories (name, slug) VALUES ('Beauty & Personal Care', 'beauty-personal-care');
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.categories WHERE slug = 'sports-fitness') THEN
-    INSERT INTO public.categories (name, slug) VALUES ('Sports & Fitness', 'sports-fitness');
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.categories WHERE slug = 'toys-games') THEN
-    INSERT INTO public.categories (name, slug) VALUES ('Toys & Games', 'toys-games');
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.categories WHERE slug = 'books-stationery') THEN
-    INSERT INTO public.categories (name, slug) VALUES ('Books & Stationery', 'books-stationery');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.categories WHERE slug = 'girls-collection') THEN
     INSERT INTO public.categories (name, slug) VALUES ('Girls Collection', 'girls-collection');

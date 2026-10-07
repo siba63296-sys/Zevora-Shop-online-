@@ -1,4 +1,5 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
+import type { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import crypto from 'crypto';
@@ -1315,6 +1316,27 @@ app.delete('/api/products/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { error } = await supabase.from('products').delete().eq('id', id);
+    if (error) {
+      res.status(400).json({ success: false, error: error.message });
+      return;
+    }
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message });
+  }
+});
+
+app.delete('/api/categories/:id', async (req: Request, res: Response) => {
+  if (!supabase) {
+    res.status(503).json({ success: false, error: 'Database client unavailable' });
+    return;
+  }
+
+  try {
+    const { id } = req.params;
+    // Delete products belonging to this category first
+    await supabase.from('products').delete().eq('category_id', id);
+    const { error } = await supabase.from('categories').delete().eq('id', id);
     if (error) {
       res.status(400).json({ success: false, error: error.message });
       return;

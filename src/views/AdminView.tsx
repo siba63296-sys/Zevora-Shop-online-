@@ -2133,7 +2133,7 @@ export const AdminView: React.FC = () => {
                 <div className="space-y-3">
                   <label className="block text-xs font-bold text-slate-700">Store Logo</label>
                   <div className="flex items-center gap-3">
-                    <div className="w-16 h-16 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                    <div className="w-16 h-16 rounded-2xl border border-slate-700 bg-[#090a0d] flex items-center justify-center overflow-hidden shrink-0">
                       {settingsForm.logo_url ? (
                         <img
                           src={settingsForm.logo_url}

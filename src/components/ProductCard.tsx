@@ -13,7 +13,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const isCompared = isInComparison(product.id);
 
   return (
-    <div className="group bg-white rounded-2xl border border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col overflow-hidden relative">
+    <div className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col overflow-hidden relative">
       {/* Top badges & Wishlist */}
       <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1 pointer-events-none">
         {!product.in_stock && (
@@ -39,7 +39,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
             isCompared
               ? 'bg-blue-600 text-white shadow-xs'
-              : 'bg-white/80 hover:bg-white text-slate-400 hover:text-blue-600 shadow-xs'
+              : 'bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 text-slate-400 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 shadow-xs'
           }`}
           title={isCompared ? 'Remove from Compare' : 'Add to Compare (up to 3)'}
           aria-label="Compare product"
@@ -56,8 +56,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           }}
           className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
             isWishlisted
-              ? 'bg-pink-50 text-pink-600 shadow-xs'
-              : 'bg-white/80 hover:bg-white text-slate-400 hover:text-pink-500 shadow-xs'
+              ? 'bg-pink-50 dark:bg-pink-950/70 text-pink-600 dark:text-pink-400 shadow-xs'
+              : 'bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 text-slate-400 dark:text-slate-300 hover:text-pink-500 shadow-xs'
           }`}
           aria-label="Toggle wishlist"
         >
@@ -68,7 +68,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       {/* Product Image */}
       <div
         onClick={() => navigateTo('product_detail', { productId: product.id })}
-        className="w-full h-48 sm:h-52 bg-slate-50 flex items-center justify-center p-3 cursor-pointer overflow-hidden relative"
+        className="w-full h-48 sm:h-52 bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-3 cursor-pointer overflow-hidden relative"
       >
         <img
           src={product.images[0] || 'https://placehold.co/400x400/png?text=Product'}
@@ -85,14 +85,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between">
         <div>
           {product.category_name && (
-            <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1 truncate">
+            <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1 truncate">
               {product.category_name}
             </p>
           )}
 
           <h3
             onClick={() => navigateTo('product_detail', { productId: product.id })}
-            className="text-sm font-bold text-slate-800 line-clamp-2 hover:text-blue-600 cursor-pointer transition-colors leading-snug"
+            className="text-sm font-bold text-slate-800 dark:text-slate-100 line-clamp-2 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors leading-snug"
           >
             {product.name}
           </h3>
@@ -103,12 +103,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               <Star className="w-3.5 h-3.5 fill-current mr-0.5" />
               <span>{product.rating}</span>
             </div>
-            <span className="text-[11px] text-slate-400">
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">
               ({product.review_count > 1000 ? `${(product.review_count / 1000).toFixed(1)}k` : product.review_count})
             </span>
             <span
               className={`text-[11px] font-bold ml-auto ${
-                product.in_stock ? 'text-emerald-600' : 'text-rose-600'
+                product.in_stock ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
               }`}
             >
               {product.in_stock ? 'In Stock' : 'Out of Stock'}
@@ -117,15 +117,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </div>
 
         {/* Price & Add to Cart button */}
-        <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
           <div className="flex flex-col">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-base sm:text-lg font-extrabold text-slate-900 tabular-nums">
+              <span className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100 tabular-nums">
                 ₹{product.price.toLocaleString('en-IN')}
               </span>
             </div>
             {product.original_price > product.price && (
-              <span className="text-xs text-slate-400 line-through tabular-nums">
+              <span className="text-xs text-slate-400 dark:text-slate-500 line-through tabular-nums">
                 ₹{product.original_price.toLocaleString('en-IN')}
               </span>
             )}
@@ -143,7 +143,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           ) : (
             <button
               disabled
-              className="px-3 py-1.5 bg-slate-100 border border-slate-200 text-slate-400 text-xs font-semibold rounded-xl flex items-center gap-1.5 cursor-not-allowed shrink-0"
+              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 text-xs font-semibold rounded-xl flex items-center gap-1.5 cursor-not-allowed shrink-0"
               title="Currently Out of Stock"
             >
               <span>Out of Stock</span>

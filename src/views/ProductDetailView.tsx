@@ -256,10 +256,10 @@ export const ProductDetailView: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-20">
       {/* Top Header Bar */}
-      <div className="flex items-center justify-between py-2 border-b border-slate-200">
+      <div className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-800">
         <button
           onClick={() => navigateTo('home')}
-          className="p-2 rounded-xl hover:bg-slate-100 text-slate-700 transition-colors"
+          className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -267,7 +267,7 @@ export const ProductDetailView: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={handleShare}
-            className="p-2 rounded-xl hover:bg-slate-100 text-slate-600 transition-colors"
+            className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
             title="Share"
           >
             <Share2 className="w-5 h-5" />
@@ -275,7 +275,7 @@ export const ProductDetailView: React.FC = () => {
           <button
             onClick={() => toggleWishlist(product)}
             className={`p-2 rounded-xl transition-colors ${
-              isWishlisted ? 'text-pink-600 bg-pink-50' : 'text-slate-600 hover:bg-slate-100'
+              isWishlisted ? 'text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/60' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
             title="Wishlist"
           >
@@ -289,7 +289,7 @@ export const ProductDetailView: React.FC = () => {
         <div className="space-y-4">
           {/* Main Large Product Image */}
           <div
-            className="w-full h-80 sm:h-96 md:h-[420px] bg-white rounded-3xl border border-slate-200/80 flex items-center justify-center relative overflow-hidden shadow-xs select-none cursor-zoom-in group"
+            className="w-full h-80 sm:h-96 md:h-[420px] bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-center relative overflow-hidden shadow-xs select-none cursor-zoom-in group"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -339,7 +339,7 @@ export const ProductDetailView: React.FC = () => {
                 setIsFullscreenOpen(true);
               }}
               title="Open full-screen gallery with zoom"
-              className="absolute top-3 right-3 p-2 rounded-xl bg-white/90 hover:bg-white text-slate-700 hover:text-blue-600 shadow-md transition-all hover:scale-105 cursor-pointer"
+              className="absolute top-3 right-3 p-2 rounded-xl bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 shadow-md transition-all hover:scale-105 cursor-pointer"
             >
               <Maximize2 className="w-4 h-4" />
             </button>
@@ -352,7 +352,7 @@ export const ProductDetailView: React.FC = () => {
                   e.stopPropagation();
                   handlePrevImage();
                 }}
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-slate-700 hover:text-blue-600 shadow-md flex items-center justify-center transition-all opacity-80 hover:opacity-100 hover:scale-110 cursor-pointer"
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 shadow-md flex items-center justify-center transition-all opacity-80 hover:opacity-100 hover:scale-110 cursor-pointer"
                 title="Previous photo"
               >
                 <ChevronLeft className="w-5 h-5" />
@@ -367,7 +367,7 @@ export const ProductDetailView: React.FC = () => {
                   e.stopPropagation();
                   handleNextImage();
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-slate-700 hover:text-blue-600 shadow-md flex items-center justify-center transition-all opacity-80 hover:opacity-100 hover:scale-110 cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 shadow-md flex items-center justify-center transition-all opacity-80 hover:opacity-100 hover:scale-110 cursor-pointer"
                 title="Next photo"
               >
                 <ChevronRight className="w-5 h-5" />
@@ -381,7 +381,7 @@ export const ProductDetailView: React.FC = () => {
                   <span
                     key={idx}
                     className={`h-1.5 rounded-full transition-all ${
-                      activeImageIndex === idx ? 'w-5 bg-blue-600' : 'w-1.5 bg-slate-300'
+                      activeImageIndex === idx ? 'w-5 bg-blue-600' : 'w-1.5 bg-slate-300 dark:bg-slate-700'
                     }`}
                   />
                 ))}
@@ -398,10 +398,10 @@ export const ProductDetailView: React.FC = () => {
                     key={idx}
                     type="button"
                     onClick={() => setActiveImageIndex(idx)}
-                    className={`w-18 h-18 sm:w-20 sm:h-20 shrink-0 rounded-2xl border-2 overflow-hidden bg-white p-1.5 transition-all cursor-pointer relative ${
+                    className={`w-18 h-18 sm:w-20 sm:h-20 shrink-0 rounded-2xl border-2 overflow-hidden bg-white dark:bg-slate-900 p-1.5 transition-all cursor-pointer relative ${
                       activeImageIndex === idx
                         ? 'border-blue-600 ring-2 ring-blue-500/20 shadow-xs'
-                        : 'border-slate-200/90 hover:border-slate-300 opacity-75 hover:opacity-100'
+                        : 'border-slate-200/90 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 opacity-75 hover:opacity-100'
                     }`}
                   >
                     <img
@@ -417,7 +417,7 @@ export const ProductDetailView: React.FC = () => {
                   </button>
                 ))}
               </div>
-              <p className="text-[11px] text-slate-400 text-center">
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center">
                 Tap photo to view • Swipe on mobile or hover to zoom
               </p>
             </div>
@@ -427,10 +427,10 @@ export const ProductDetailView: React.FC = () => {
         {/* Right Column: Contiguous Purchase Module & Details */}
         <div className="space-y-5">
           <div>
-            <span className="text-xs uppercase font-bold tracking-wider text-blue-600">
+            <span className="text-xs uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400">
               {product.category_name || 'Electronics'}
             </span>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1 leading-snug">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 leading-snug">
               {product.name}
             </h1>
 
@@ -442,32 +442,32 @@ export const ProductDetailView: React.FC = () => {
                   e.preventDefault();
                   document.getElementById('customer-reviews')?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 px-2.5 py-1 rounded-md text-xs font-bold border border-amber-200 transition-colors cursor-pointer group"
+                className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2.5 py-1 rounded-md text-xs font-bold border border-amber-200 dark:border-amber-800 transition-colors cursor-pointer group"
                 title="View verified customer reviews"
               >
                 <Star className="w-3.5 h-3.5 fill-current text-amber-500 group-hover:scale-110 transition-transform" />
                 <span>{avgRating}</span>
-                <span className="text-amber-700/80">({reviewCount} reviews)</span>
+                <span className="text-amber-700/80 dark:text-amber-400/80">({reviewCount} reviews)</span>
               </a>
 
               {isAvailableToBuy ? (
-                <span className="text-xs text-emerald-600 font-bold flex items-center gap-1.5 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
                   In Stock ({currentStock} available)
                 </span>
               ) : (
-                <span className="text-xs text-rose-600 font-bold flex items-center gap-1.5 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-md">
+                <span className="text-xs text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 px-2.5 py-0.5 rounded-md">
                   <span className="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>
                   Out of Stock
                 </span>
               )}
 
               {activeVariant?.sku ? (
-                <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                <span className="text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
                   SKU: {activeVariant.sku}
                 </span>
               ) : product.sku ? (
-                <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                <span className="text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
                   SKU: {product.sku}
                 </span>
               ) : null}
@@ -475,16 +475,16 @@ export const ProductDetailView: React.FC = () => {
           </div>
 
           {/* Price Block */}
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-baseline gap-3">
-            <span className="text-3xl font-extrabold text-slate-900 tabular-nums">
+          <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex items-baseline gap-3">
+            <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tabular-nums">
               ₹{currentPrice.toLocaleString('en-IN')}
             </span>
             {currentMrp > currentPrice && (
               <>
-                <span className="text-base text-slate-400 line-through tabular-nums">
+                <span className="text-base text-slate-400 dark:text-slate-500 line-through tabular-nums">
                   ₹{currentMrp.toLocaleString('en-IN')}
                 </span>
-                <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
                   {currentDiscountPercent}% OFF
                 </span>
               </>
@@ -495,11 +495,11 @@ export const ProductDetailView: React.FC = () => {
           {product.specs && product.specs.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {product.specs.map((spec, idx) => (
-                <div key={idx} className="p-2.5 bg-white border border-slate-200 rounded-xl text-center">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block truncate">
+                <div key={idx} className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold block truncate">
                     {spec.label}
                   </span>
-                  <span className="text-xs font-bold text-slate-800 truncate block mt-0.5">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate block mt-0.5">
                     {spec.value}
                   </span>
                 </div>
@@ -511,17 +511,17 @@ export const ProductDetailView: React.FC = () => {
           {product.colors && product.colors.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-700">
-                  Select Color: <strong className="text-slate-900">{selectedColor || 'Choose a color'}</strong>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Select Color: <strong className="text-slate-900 dark:text-slate-100">{selectedColor || 'Choose a color'}</strong>
                 </span>
                 {selectedColor && (
-                  <span className="text-[11px] font-medium text-slate-500">
+                  <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
                     {getColorStock(product, selectedColor) > 0 ? (
-                      <span className="text-emerald-600 font-semibold">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
                         {getColorStock(product, selectedColor)} in stock
                       </span>
                     ) : (
-                      <span className="text-rose-500 font-semibold">Out of stock</span>
+                      <span className="text-rose-500 dark:text-rose-400 font-semibold">Out of stock</span>
                     )}
                   </span>
                 )}
@@ -543,8 +543,8 @@ export const ProductDetailView: React.FC = () => {
                       }}
                       className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
                         isSel
-                          ? 'border-blue-600 bg-blue-50/70 ring-2 ring-blue-500/30 shadow-xs'
-                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                          ? 'border-blue-600 bg-blue-50/70 dark:bg-blue-950/60 ring-2 ring-blue-500/30 shadow-xs'
+                          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
                       } ${isOut ? 'opacity-60' : ''}`}
                       title={`${c.name} (${cStock} in stock)`}
                     >
@@ -552,12 +552,12 @@ export const ProductDetailView: React.FC = () => {
                         className="w-4 h-4 rounded-full border border-black/20 shadow-2xs shrink-0"
                         style={{ backgroundColor: c.hex }}
                       />
-                      <span className={`text-xs font-bold ${isSel ? 'text-blue-900' : 'text-slate-700'}`}>
+                      <span className={`text-xs font-bold ${isSel ? 'text-blue-900 dark:text-blue-200' : 'text-slate-700 dark:text-slate-300'}`}>
                         {c.name}
                       </span>
-                      {isSel && <Check className="w-3.5 h-3.5 text-blue-600 stroke-[3]" />}
+                      {isSel && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 stroke-[3]" />}
                       {isOut && (
-                        <span className="text-[9px] text-rose-500 font-medium">Sold out</span>
+                        <span className="text-[9px] text-rose-500 dark:text-rose-400 font-medium">Sold out</span>
                       )}
                     </button>
                   );
@@ -572,21 +572,21 @@ export const ProductDetailView: React.FC = () => {
               id="size-selector-section"
               className={`space-y-2.5 p-3.5 rounded-2xl transition-all ${
                 sizeErrorPrompt
-                  ? 'border-2 border-rose-500 bg-rose-50/50 shadow-md ring-4 ring-rose-500/20'
-                  : 'bg-slate-50/70 border border-slate-200/80'
+                  ? 'border-2 border-rose-500 bg-rose-50/50 dark:bg-rose-950/40 shadow-md ring-4 ring-rose-500/20'
+                  : 'bg-slate-50/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-800">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                     Select Size
                   </span>
                   {selectedSize ? (
-                    <span className="text-xs font-extrabold text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-md border border-blue-200">
+                    <span className="text-xs font-extrabold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-950/70 px-2.5 py-0.5 rounded-md border border-blue-200 dark:border-blue-800">
                       {selectedSize}
                     </span>
                   ) : (
-                    <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                    <span className="text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-md border border-rose-200 dark:border-rose-800">
                       Required *
                     </span>
                   )}
@@ -596,9 +596,9 @@ export const ProductDetailView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsSizeChartOpen(true)}
-                  className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 bg-white hover:bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-200 shadow-2xs transition-all cursor-pointer group"
+                  className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 px-2.5 py-1 rounded-xl border border-blue-200 dark:border-blue-800 shadow-2xs transition-all cursor-pointer group"
                 >
-                  <Ruler className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform" />
+                  <Ruler className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
                   <span>Size Chart</span>
                 </button>
               </div>
@@ -623,10 +623,10 @@ export const ProductDetailView: React.FC = () => {
                       }}
                       className={`relative min-w-14 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center cursor-pointer ${
                         !inStock
-                          ? 'bg-slate-100 text-slate-400 border border-slate-200/80 cursor-not-allowed opacity-50 line-through'
+                          ? 'bg-slate-100 dark:bg-slate-800/40 text-slate-400 dark:text-slate-600 border border-slate-200/80 dark:border-slate-800 cursor-not-allowed opacity-50 line-through'
                           : isSelected
-                          ? 'bg-slate-900 text-white shadow-md ring-2 ring-blue-600 ring-offset-2'
-                          : 'bg-white border border-slate-200 text-slate-800 hover:border-slate-400 hover:bg-slate-50'
+                          ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-slate-900'
+                          : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'
                       }`}
                       title={!inStock ? `${sz} is Out of stock` : `${sz} (${szStock} available)`}
                     >
@@ -639,7 +639,7 @@ export const ProductDetailView: React.FC = () => {
                       {inStock && szStock > 0 && szStock <= 5 && (
                         <span
                           className={`text-[8px] font-medium tracking-tight ${
-                            isSelected ? 'text-amber-300' : 'text-amber-600'
+                            isSelected ? 'text-amber-200' : 'text-amber-600 dark:text-amber-400'
                           }`}
                         >
                           Only {szStock} left
@@ -651,17 +651,17 @@ export const ProductDetailView: React.FC = () => {
               </div>
 
               {sizeErrorPrompt && (
-                <p className="text-xs text-rose-600 font-bold flex items-center gap-1 animate-in fade-in">
+                <p className="text-xs text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1 animate-in fade-in">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                   <span>Please choose your size before adding to cart or purchasing.</span>
                 </p>
               )}
 
               {selectedSize && (
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-600 pt-1">
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 pt-1">
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <span>
-                    Selected: <strong className="text-slate-900">{selectedSize}</strong>
+                    Selected: <strong className="text-slate-900 dark:text-slate-100">{selectedSize}</strong>
                     {selectedColor ? ` • ${selectedColor}` : ''}
                     {activeVariant?.sku ? ` • SKU: ${activeVariant.sku}` : ''}
                   </span>
@@ -675,25 +675,25 @@ export const ProductDetailView: React.FC = () => {
             <div className="flex items-center gap-4">
               <div
                 className={`flex items-center border rounded-xl p-1 ${
-                  isAvailableToBuy ? 'border-slate-200 bg-white' : 'border-slate-200 bg-slate-100 opacity-60'
+                  isAvailableToBuy ? 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800' : 'border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/50 opacity-60'
                 }`}
               >
                 <button
                   type="button"
                   disabled={!isAvailableToBuy}
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-700 transition-colors disabled:cursor-not-allowed cursor-pointer"
+                  className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 transition-colors disabled:cursor-not-allowed cursor-pointer"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
-                <span className="w-10 text-center text-sm font-bold text-slate-900 tabular-nums">
+                <span className="w-10 text-center text-sm font-bold text-slate-900 dark:text-slate-100 tabular-nums">
                   {isAvailableToBuy ? quantity : 0}
                 </span>
                 <button
                   type="button"
                   disabled={!isAvailableToBuy}
                   onClick={() => setQuantity((q) => Math.min(currentStock, q + 1))}
-                  className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-700 transition-colors disabled:cursor-not-allowed cursor-pointer"
+                  className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 transition-colors disabled:cursor-not-allowed cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -712,7 +712,7 @@ export const ProductDetailView: React.FC = () => {
                 <button
                   type="button"
                   disabled
-                  className="flex-1 py-3 px-6 bg-slate-100 text-slate-400 font-bold rounded-xl border border-slate-200 flex items-center justify-center gap-2 cursor-not-allowed"
+                  className="flex-1 py-3 px-6 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-bold rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-2 cursor-not-allowed"
                 >
                   <span>Out of Stock</span>
                 </button>
@@ -726,8 +726,8 @@ export const ProductDetailView: React.FC = () => {
                 onClick={() => toggleWishlist(product)}
                 className={`py-2.5 px-3.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   isWishlisted
-                    ? 'border-pink-300 text-pink-600 bg-pink-50'
-                    : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                    ? 'border-pink-300 dark:border-pink-800 text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/60'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
                 }`}
               >
                 <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
@@ -739,8 +739,8 @@ export const ProductDetailView: React.FC = () => {
                 onClick={() => toggleComparison(product)}
                 className={`py-2.5 px-3.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   isCompared
-                    ? 'border-blue-400 text-blue-700 bg-blue-50 shadow-2xs'
-                    : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                    ? 'border-blue-400 dark:border-blue-700 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 shadow-2xs'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
                 }`}
                 title="Compare up to 3 products"
               >
@@ -752,7 +752,7 @@ export const ProductDetailView: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleBuyNow}
-                  className="flex-1 py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                  className="flex-1 py-2.5 px-4 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer border border-slate-800 dark:border-slate-700"
                 >
                   <Zap className="w-4 h-4 text-amber-400" />
                   <span>Buy Now</span>
@@ -761,7 +761,7 @@ export const ProductDetailView: React.FC = () => {
                 <button
                   type="button"
                   disabled
-                  className="flex-1 py-2.5 px-4 bg-slate-100 text-slate-400 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-not-allowed border border-slate-200"
+                  className="flex-1 py-2.5 px-4 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-not-allowed border border-slate-200 dark:border-slate-700"
                 >
                   <span>Currently Unavailable</span>
                 </button>
@@ -770,44 +770,44 @@ export const ProductDetailView: React.FC = () => {
           </div>
 
           {/* Delivery & Trust highlights */}
-          <div className="grid grid-cols-3 gap-2 pt-4 border-t border-slate-200 text-center">
-            <div className="p-2.5 rounded-xl bg-slate-50">
-              <Truck className="w-4 h-4 text-blue-600 mx-auto mb-1" />
-              <span className="text-[10px] font-bold text-slate-700 block">Fast Delivery</span>
-              <span className="text-[9px] text-slate-400 block">2-4 Business Days</span>
+          <div className="grid grid-cols-3 gap-2 pt-4 border-t border-slate-200 dark:border-slate-800 text-center">
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
+              <Truck className="w-4 h-4 text-blue-600 dark:text-blue-400 mx-auto mb-1" />
+              <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block">Fast Delivery</span>
+              <span className="text-[9px] text-slate-400 dark:text-slate-500 block">2-4 Business Days</span>
             </div>
-            <div className="p-2.5 rounded-xl bg-slate-50">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 mx-auto mb-1" />
-              <span className="text-[10px] font-bold text-slate-700 block">1 Year Warranty</span>
-              <span className="text-[9px] text-slate-400 block">100% Genuine</span>
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mx-auto mb-1" />
+              <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block">1 Year Warranty</span>
+              <span className="text-[9px] text-slate-400 dark:text-slate-500 block">100% Genuine</span>
             </div>
-            <div className="p-2.5 rounded-xl bg-slate-50">
-              <RotateCcw className="w-4 h-4 text-purple-600 mx-auto mb-1" />
-              <span className="text-[10px] font-bold text-slate-700 block">7 Days Return</span>
-              <span className="text-[9px] text-slate-400 block">Hassle Free</span>
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
+              <RotateCcw className="w-4 h-4 text-purple-600 dark:text-purple-400 mx-auto mb-1" />
+              <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block">7 Days Return</span>
+              <span className="text-[9px] text-slate-400 dark:text-slate-500 block">Hassle Free</span>
             </div>
           </div>
 
           {/* 7 Days Return Policy Section */}
-          <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-200/80 space-y-2">
+          <div className="p-4 rounded-2xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200/80 dark:border-purple-900/60 space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0">
                   <RotateCcw className="w-3.5 h-3.5" />
                 </div>
-                <h4 className="text-xs sm:text-sm font-bold text-purple-950">7 Days Return Policy</h4>
+                <h4 className="text-xs sm:text-sm font-bold text-purple-950 dark:text-purple-200">7 Days Return Policy</h4>
               </div>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-300">
                 Guaranteed
               </span>
             </div>
-            <ul className="text-xs text-purple-900/90 space-y-1 pl-1 leading-relaxed">
+            <ul className="text-xs text-purple-900/90 dark:text-purple-300/90 space-y-1 pl-1 leading-relaxed">
               <li className="flex items-start gap-1.5">
-                <span className="text-purple-600 font-bold">•</span>
+                <span className="text-purple-600 dark:text-purple-400 font-bold">•</span>
                 <span>Customers can request a return within <strong>7 days of delivery</strong>.</span>
               </li>
               <li className="flex items-start gap-1.5">
-                <span className="text-purple-600 font-bold">•</span>
+                <span className="text-purple-600 dark:text-purple-400 font-bold">•</span>
                 <span>
                   Return is accepted <strong>only if the original product box seal is intact and unbroken</strong>.
                 </span>
@@ -817,8 +817,8 @@ export const ProductDetailView: React.FC = () => {
 
           {/* Description */}
           <div className="space-y-2 pt-2">
-            <h4 className="text-sm font-bold text-slate-900">About this item</h4>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+            <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">About this item</h4>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               {product.description}
             </p>
           </div>

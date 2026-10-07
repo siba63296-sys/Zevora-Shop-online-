@@ -37,19 +37,19 @@ export const HomeView: React.FC = () => {
       {/* Welcome & User Greeting */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
             Welcome, {userName}! <span className="text-2xl">👋</span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
             Find the best deals on smartphones, electronics, fashion and more.
           </p>
         </div>
 
         <button
           onClick={() => navigateTo('orders')}
-          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 transition-colors"
+          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors"
         >
-          <Truck className="w-3.5 h-3.5 text-blue-600" />
+          <Truck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
           <span>Track Order</span>
         </button>
       </div>
@@ -76,15 +76,15 @@ export const HomeView: React.FC = () => {
         </div>
 
         <div
-          onClick={() => navigateTo('category_products', { categoryId: 'cat-toys' })}
+          onClick={() => navigateTo('category_products', { categoryId: 'cat-electronics' })}
           className="p-4 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white cursor-pointer hover:shadow-md transition-all flex items-center justify-between group"
         >
           <div>
             <span className="text-[10px] uppercase font-bold tracking-wider text-amber-100 block">
-              New Arrival
+              Audio &amp; Wearables
             </span>
-            <h4 className="text-sm sm:text-base font-bold text-white mt-0.5">Gaming Gear</h4>
-            <p className="text-xs text-amber-100 font-medium mt-0.5">50+ Items In Stock</p>
+            <h4 className="text-sm sm:text-base font-bold text-white mt-0.5">Electronics &amp; Audio</h4>
+            <p className="text-xs text-amber-100 font-medium mt-0.5">Premium Gear</p>
           </div>
           <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
             <Tag className="w-5 h-5 text-white" />
@@ -98,7 +98,7 @@ export const HomeView: React.FC = () => {
       {/* Main 6 Quick Action Grid Cards (Matching Screen 1 of Reference Image) */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Quick Actions
           </h3>
         </div>
@@ -175,32 +175,32 @@ export const HomeView: React.FC = () => {
       </div>
 
       {/* Quick Access Bar (Track Order, Reorder Fast, Saved Payment) */}
-      <div className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
-        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+      <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+        <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
           Quick Access
         </h4>
         <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => navigateTo('orders')}
-            className="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 text-xs font-semibold transition-colors"
+            className="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold transition-colors"
           >
-            <Truck className="w-4 h-4 text-blue-600" />
+            <Truck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             <span className="truncate">Track Order</span>
           </button>
 
           <button
             onClick={() => navigateTo('orders')}
-            className="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 text-xs font-semibold transition-colors"
+            className="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold transition-colors"
           >
-            <RotateCcw className="w-4 h-4 text-emerald-600" />
+            <RotateCcw className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span className="truncate">Reorder Fast</span>
           </button>
 
           <button
             onClick={() => navigateTo('profile')}
-            className="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 text-xs font-semibold transition-colors"
+            className="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold transition-colors"
           >
-            <CreditCard className="w-4 h-4 text-purple-600" />
+            <CreditCard className="w-4 h-4 text-purple-600 dark:text-purple-400" />
             <span className="truncate">Saved Payment</span>
           </button>
         </div>
@@ -210,12 +210,12 @@ export const HomeView: React.FC = () => {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-slate-900">Explore Top Categories</h3>
-            <p className="text-xs text-slate-500">Handpicked collections for you</p>
+            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Explore Top Categories</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Handpicked collections for you</p>
           </div>
           <button
             onClick={() => navigateTo('categories')}
-            className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-0.5"
+            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-0.5"
           >
             <span>View All</span>
             <ChevronRight className="w-4 h-4" />
@@ -233,17 +233,17 @@ export const HomeView: React.FC = () => {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-rose-100 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 flex items-center justify-center">
               <Flame className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">Featured Deals</h3>
-              <p className="text-xs text-slate-500">Trending picks with verified customer ratings</p>
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Featured Deals</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Trending picks with verified customer ratings</p>
             </div>
           </div>
           <button
             onClick={() => navigateTo('category_products', { categoryId: 'cat-mobiles' })}
-            className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-0.5"
+            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-0.5"
           >
             <span>See More</span>
             <ChevronRight className="w-4 h-4" />

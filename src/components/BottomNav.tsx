@@ -15,7 +15,7 @@ export const BottomNav: React.FC = () => {
   ];
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1 shadow-lg">
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-2 py-1 shadow-lg transition-colors duration-200">
       <div className="flex items-center justify-around">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -28,7 +28,9 @@ export const BottomNav: React.FC = () => {
               key={item.id}
               onClick={() => navigateTo(item.id as any)}
               className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all relative ${
-                isActive ? 'text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-800'
+                isActive
+                  ? 'text-blue-600 dark:text-blue-400 font-semibold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
               <div className="relative">

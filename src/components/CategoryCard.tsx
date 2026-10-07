@@ -44,7 +44,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, compact = 
     return (
       <button
         onClick={() => navigateTo('category_products', { categoryId: category.id })}
-        className="flex flex-col items-center p-3 rounded-2xl bg-white border border-slate-200/80 hover:border-blue-400 hover:shadow-xs transition-all group shrink-0 w-24 text-center"
+        className="flex flex-col items-center p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-xs transition-all group shrink-0 w-24 text-center"
       >
         <div
           style={colorStyle}
@@ -52,10 +52,10 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, compact = 
         >
           <IconComponent className="w-6 h-6" />
         </div>
-        <span className="text-xs font-semibold text-slate-800 line-clamp-1 group-hover:text-blue-600 transition-colors">
+        <span className="text-xs font-semibold text-slate-800 dark:text-slate-100 line-clamp-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
           {category.name}
         </span>
-        <span className="text-[10px] text-slate-400 mt-0.5">
+        <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
           {category.product_count}+
         </span>
       </button>
@@ -65,7 +65,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, compact = 
   return (
     <button
       onClick={() => navigateTo('category_products', { categoryId: category.id })}
-      className="w-full flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200/80 hover:border-blue-400 hover:shadow-xs transition-all group text-left"
+      className="w-full flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-xs transition-all group text-left"
     >
       <div className="flex items-center gap-3.5">
         <div
@@ -75,16 +75,16 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, compact = 
           <IconComponent className="w-6 h-6" />
         </div>
         <div>
-          <h4 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+          <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
             {category.name}
           </h4>
-          <p className="text-xs text-slate-400 font-medium mt-0.5">
+          <p className="text-xs text-slate-400 dark:text-slate-500 font-medium mt-0.5">
             {category.product_count}+ Products
           </p>
         </div>
       </div>
 
-      <div className="w-8 h-8 rounded-full bg-slate-50 text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 flex items-center justify-center transition-colors">
+      <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-300 group-hover:bg-blue-50 dark:group-hover:bg-blue-950/60 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex items-center justify-center transition-colors">
         <ChevronRight className="w-4 h-4" />
       </div>
     </button>

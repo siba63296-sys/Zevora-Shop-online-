@@ -105,7 +105,7 @@ export const LoginView: React.FC = () => {
           <img
             src={storeSettings.logo_url}
             alt={storeSettings.store_name}
-            className="w-14 h-14 object-contain rounded-2xl mx-auto border border-slate-200 shadow-md shadow-blue-600/10"
+            className="w-16 h-16 object-contain rounded-2xl mx-auto bg-[#090a0d] border border-slate-800 shadow-md"
           />
         ) : (
           <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center mx-auto shadow-md shadow-blue-600/30">

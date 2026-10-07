@@ -80,7 +80,7 @@ const MainContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
       {/* Top Header */}
       <Header />
 
@@ -91,7 +91,7 @@ const MainContent: React.FC = () => {
 
       {/* Global Footer (shown on all views except full admin) */}
       {currentPage !== 'admin' && (
-        <footer className="bg-white border-t border-slate-200 mt-12 pb-20 lg:pb-8">
+        <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 mt-12 pb-20 lg:pb-8 transition-colors duration-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
             {/* Adsterra Banner Ad Area (Excluded on Checkout, Payment, Login, Signup, and Admin pages) */}
             {currentPage !== 'checkout' && currentPage !== 'login' && (
@@ -106,21 +106,21 @@ const MainContent: React.FC = () => {
                     <img
                       src={storeSettings.logo_url}
                       alt={storeSettings.store_name}
-                      className="w-8 h-8 rounded-xl object-contain border border-slate-200"
+                      className="w-8 h-8 rounded-xl object-contain bg-[#090a0d] border border-slate-800"
                     />
                   ) : (
                     <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center">
                       <ShoppingBag className="w-4 h-4" />
                     </div>
                   )}
-                  <span className="font-extrabold text-base tracking-tight text-slate-900">
+                  <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-slate-100">
                     {storeSettings.store_name || 'Zevora'}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 leading-relaxed">
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                   {storeSettings.tagline || 'Your trusted e-commerce destination for premier electronics, trending fashion, and home essentials.'}
                 </p>
-                <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600">
+                <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
                   <span>100% Secure Shopping Guarantee</span>
                 </div>
@@ -128,19 +128,19 @@ const MainContent: React.FC = () => {
 
               {/* Shop Col */}
               <div className="space-y-2 text-xs">
-                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
+                <h4 className="font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider text-[11px]">
                   Shop Catalog
                 </h4>
-                <ul className="space-y-1.5 text-slate-500">
+                <ul className="space-y-1.5 text-slate-500 dark:text-slate-400">
                   <li>
-                    <button onClick={() => navigateTo('categories')} className="hover:text-blue-600">
+                    <button onClick={() => navigateTo('categories')} className="hover:text-blue-600 dark:hover:text-blue-400">
                       All Categories
                     </button>
                   </li>
                   <li>
                     <button
                       onClick={() => navigateTo('category_products', { categoryId: 'cat-mobiles' })}
-                      className="hover:text-blue-600"
+                      className="hover:text-blue-600 dark:hover:text-blue-400"
                     >
                       Mobiles &amp; Tablets
                     </button>
@@ -148,7 +148,7 @@ const MainContent: React.FC = () => {
                   <li>
                     <button
                       onClick={() => navigateTo('category_products', { categoryId: 'cat-laptops' })}
-                      className="hover:text-blue-600"
+                      className="hover:text-blue-600 dark:hover:text-blue-400"
                     >
                       Laptops &amp; Tech
                     </button>
@@ -156,7 +156,7 @@ const MainContent: React.FC = () => {
                   <li>
                     <button
                       onClick={() => navigateTo('category_products', { categoryId: 'cat-fashion' })}
-                      className="hover:text-blue-600"
+                      className="hover:text-blue-600 dark:hover:text-blue-400"
                     >
                       Fashion &amp; Shoes
                     </button>
@@ -166,16 +166,16 @@ const MainContent: React.FC = () => {
 
               {/* Customer Service Col */}
               <div className="space-y-2 text-xs">
-                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
+                <h4 className="font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider text-[11px]">
                   Customer Service
                 </h4>
-                <ul className="space-y-1.5 text-slate-500">
+                <ul className="space-y-1.5 text-slate-500 dark:text-slate-400">
                   <li>
                     <a
                       href="https://wa.me/message/7RK4DNNVB7LBB1"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-emerald-600 flex items-center gap-1.5 font-medium text-slate-600 transition-colors"
+                      className="hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-300 transition-colors"
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                       <span>WhatsApp Support</span>
@@ -186,29 +186,29 @@ const MainContent: React.FC = () => {
                       href="https://t.me/Raju12470"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-sky-600 flex items-center gap-1.5 font-medium text-slate-600 transition-colors"
+                      className="hover:text-sky-600 dark:hover:text-sky-400 flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-300 transition-colors"
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
                       <span>Telegram Support</span>
                     </a>
                   </li>
                   <li>
-                    <button onClick={() => navigateTo('orders')} className="hover:text-blue-600">
+                    <button onClick={() => navigateTo('orders')} className="hover:text-blue-600 dark:hover:text-blue-400">
                       Order Tracking
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => navigateTo('help')} className="hover:text-blue-600">
+                    <button onClick={() => navigateTo('help')} className="hover:text-blue-600 dark:hover:text-blue-400">
                       Help &amp; Support
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => navigateTo('help')} className="hover:text-blue-600">
+                    <button onClick={() => navigateTo('help')} className="hover:text-blue-600 dark:hover:text-blue-400">
                       Return &amp; Refund Policy
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => navigateTo('wishlist')} className="hover:text-blue-600">
+                    <button onClick={() => navigateTo('wishlist')} className="hover:text-blue-600 dark:hover:text-blue-400">
                       My Wishlist
                     </button>
                   </li>
@@ -217,29 +217,29 @@ const MainContent: React.FC = () => {
 
               {/* Legal & Admin Col */}
               <div className="space-y-2 text-xs">
-                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
+                <h4 className="font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider text-[11px]">
                   Platform
                 </h4>
-                <ul className="space-y-1.5 text-slate-500">
+                <ul className="space-y-1.5 text-slate-500 dark:text-slate-400">
                   <li>
-                    <button onClick={() => navigateTo('terms')} className="hover:text-blue-600">
+                    <button onClick={() => navigateTo('terms')} className="hover:text-blue-600 dark:hover:text-blue-400">
                       Terms &amp; Conditions
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => navigateTo('privacy')} className="hover:text-blue-600">
+                    <button onClick={() => navigateTo('privacy')} className="hover:text-blue-600 dark:hover:text-blue-400">
                       Privacy Policy
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => navigateTo('settings')} className="hover:text-blue-600">
+                    <button onClick={() => navigateTo('settings')} className="hover:text-blue-600 dark:hover:text-blue-400">
                       Settings
                     </button>
                   </li>
                   <li>
                     <button
                       onClick={() => navigateTo('admin')}
-                      className="hover:text-blue-600 font-bold text-blue-600 flex items-center gap-1 mt-1 cursor-pointer"
+                      className="hover:text-blue-600 dark:hover:text-blue-400 font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 mt-1 cursor-pointer"
                     >
                       <span>🔒 Store Admin Panel</span>
                     </button>
@@ -249,12 +249,12 @@ const MainContent: React.FC = () => {
             </div>
 
             {/* Social Media Follow Section */}
-            <div className="mt-8 pt-6 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="text-center md:text-left space-y-0.5">
-                <p className="text-xs sm:text-sm font-bold text-slate-900">
+                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
                   Follow us on Social Media for More Offers, Mega Deals &amp; Exclusive Discounts!
                 </p>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Stay connected on Instagram, Facebook &amp; Twitter/X for daily flash sales and promotions.
                 </p>
               </div>
@@ -301,7 +301,7 @@ const MainContent: React.FC = () => {
               </div>
             </div>
 
-            <div className="border-t border-slate-100 mt-6 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-3">
+            <div className="border-t border-slate-100 dark:border-slate-800 mt-6 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 dark:text-slate-500 gap-3">
               <p>© {new Date().getFullYear()} {storeSettings.store_name || 'Zevora'}. All rights reserved.</p>
               <div className="flex items-center gap-4">
                 <span>100% Secure Checkout</span>
@@ -312,7 +312,7 @@ const MainContent: React.FC = () => {
                 <span>·</span>
                 <button
                   onClick={() => navigateTo('admin')}
-                  className="hover:text-blue-600 font-semibold text-slate-500 cursor-pointer transition-colors"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 font-semibold text-slate-500 dark:text-slate-400 cursor-pointer transition-colors"
                 >
                   Admin Portal
                 </button>

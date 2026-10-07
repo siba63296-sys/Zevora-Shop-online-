@@ -174,6 +174,12 @@ interface StoreContextType {
   // Toasts
   toast: { message: string; type: 'success' | 'info' | 'error' } | null;
   showToast: (message: string, type?: 'success' | 'info' | 'error') => void;
+
+  // Theme & Dark Mode
+  themeMode: 'light' | 'dark' | 'system';
+  isDarkMode: boolean;
+  setThemeMode: (mode: 'light' | 'dark' | 'system') => void;
+  toggleDarkMode: () => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -191,6 +197,74 @@ const LOCAL_STORAGE_OFFERS = 'online_store_offers_v1';
 const LOCAL_STORAGE_STORE_SETTINGS = 'online_store_settings_v1';
 const LOCAL_STORAGE_COUPONS = 'online_store_coupons_v1';
 const LOCAL_STORAGE_APPLIED_COUPON = 'online_store_applied_coupon_v1';
+
+// Strictly deleted categories from store catalog
+const DELETED_CATEGORY_IDS = new Set([
+  'cat-home',
+  'cat-beauty',
+  'cat-toys',
+  'cat-books',
+  'cat-sports',
+  'c382d277-a0e1-4544-96d4-7e0d24af953b',
+  '32b45cf6-7834-487c-8f00-14b5aafb7325',
+  'd0e0e416-e7d5-479f-a0b6-6c40d0e9aa0b',
+  '70b67742-1959-4303-a108-490514df9228',
+  'b68942ba-e1c6-4184-9047-c97198ff0b55',
+  '64d0605e-ef7d-4c8c-9b66-2390fb723978',
+]);
+
+const DELETED_CATEGORY_NAMES = new Set([
+  'home & living',
+  'beauty & personal care',
+  'toys & games',
+  'books & stationery',
+  'sports & fitness',
+  'sports',
+]);
+
+const DELETED_CATEGORY_SLUGS = new Set([
+  'home-living',
+  'beauty',
+  'beauty-personal-care',
+  'toys-games',
+  'books-stationery',
+  'sports-fitness',
+  'sports',
+]);
+
+export function isDeletedCategory(cat: { id?: string; name?: string; slug?: string }): boolean {
+  if (cat.id && DELETED_CATEGORY_IDS.has(cat.id)) return true;
+  if (cat.slug && DELETED_CATEGORY_SLUGS.has(cat.slug.toLowerCase().trim())) return true;
+  if (cat.name && DELETED_CATEGORY_NAMES.has(cat.name.toLowerCase().trim())) return true;
+  return false;
+}
+
+export function isDeletedProduct(p: { category_id?: string; category_name?: string }): boolean {
+  if (p.category_id && DELETED_CATEGORY_IDS.has(p.category_id)) return true;
+  if (p.category_name && DELETED_CATEGORY_NAMES.has(p.category_name.toLowerCase().trim())) return true;
+  return false;
+}
+
+export function sanitizeCategories(rawList: Category[]): Category[] {
+  const seenNames = new Set<string>();
+  const seenSlugs = new Set<string>();
+  const result: Category[] = [];
+
+  for (const cat of rawList) {
+    if (isDeletedCategory(cat)) continue;
+    const normName = (cat.name || '').trim().toLowerCase();
+    const normSlug = (cat.slug || '').trim().toLowerCase();
+    if (seenNames.has(normName) || (normSlug && seenSlugs.has(normSlug))) continue;
+    if (normName) seenNames.add(normName);
+    if (normSlug) seenSlugs.add(normSlug);
+    result.push(cat);
+  }
+  return result;
+}
+
+export function sanitizeProducts(rawList: Product[]): Product[] {
+  return rawList.filter((p) => !isDeletedProduct(p));
+}
 
 const DEFAULT_REVIEWS: Record<string, ProductReview[]> = {
   'prod-iphone15': [
@@ -296,6 +370,61 @@ const getInitialPage = (): PageView => {
 };
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Theme & Dark Mode State
+  const [themeMode, setThemeModeState] = useState<'light' | 'dark' | 'system'>(() => {
+    try {
+      const saved = localStorage.getItem('zevora_theme_mode') || localStorage.getItem('zevora_theme');
+      if (saved === 'dark' || saved === 'light' || saved === 'system') {
+        return saved as 'light' | 'dark' | 'system';
+      }
+    } catch {}
+    return 'light';
+  });
+
+  const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) => {
+      setSystemPrefersDark(e.matches);
+    };
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+
+  const isDarkMode = useMemo(() => {
+    if (themeMode === 'dark') return true;
+    if (themeMode === 'light') return false;
+    return systemPrefersDark;
+  }, [themeMode, systemPrefersDark]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isDarkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    try {
+      localStorage.setItem('zevora_theme_mode', themeMode);
+      localStorage.setItem('zevora_theme', themeMode);
+    } catch {}
+  }, [isDarkMode, themeMode]);
+
+  const setThemeMode = (mode: 'light' | 'dark' | 'system') => {
+    setThemeModeState(mode);
+  };
+
+  const toggleDarkMode = () => {
+    setThemeModeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
   // Navigation State
   const [currentPage, setCurrentPage] = useState<PageView>(getInitialPage);
   const [selectedProductId, setSelectedProductId] = useState<string | null>('prod-iphone15');
@@ -309,7 +438,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((p: Product) => {
+          const sanitized = sanitizeProducts(parsed);
+          return sanitized.map((p: Product) => {
             if (p.category_id === 'cat-footwear' || p.category_name === 'Shoes & Footwear') {
               const positiveStock = Number(p.stock_quantity) > 0 ? Number(p.stock_quantity) : 25;
               const updatedSpecs = Array.isArray(p.specs)
@@ -334,9 +464,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           });
         }
       }
-      return INITIAL_PRODUCTS;
+      return sanitizeProducts(INITIAL_PRODUCTS);
     } catch {
-      return INITIAL_PRODUCTS;
+      return sanitizeProducts(INITIAL_PRODUCTS);
     }
   });
 
@@ -346,12 +476,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          return sanitizeCategories(parsed);
         }
       }
-      return INITIAL_CATEGORIES;
+      return sanitizeCategories(INITIAL_CATEGORIES);
     } catch {
-      return INITIAL_CATEGORIES;
+      return sanitizeCategories(INITIAL_CATEGORIES);
     }
   });
 
@@ -464,7 +594,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const saved = localStorage.getItem(LOCAL_STORAGE_STORE_SETTINGS);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.store_name) return { ...DEFAULT_STORE_SETTINGS, ...parsed };
+        if (parsed && parsed.store_name) {
+          const merged = { ...DEFAULT_STORE_SETTINGS, ...parsed };
+          if (!merged.logo_url || merged.logo_url.includes('zevora-logo')) {
+            merged.logo_url = DEFAULT_STORE_SETTINGS.logo_url;
+          }
+          if (!merged.favicon_url || merged.favicon_url.includes('zevora-logo')) {
+            merged.favicon_url = DEFAULT_STORE_SETTINGS.favicon_url;
+          }
+          return merged;
+        }
       }
     } catch {}
     return DEFAULT_STORE_SETTINGS;
@@ -812,6 +951,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch {}
   }, [user]);
 
+  // One-time cleanup of any legacy cached deleted categories or products from localStorage
+  useEffect(() => {
+    try {
+      const savedCats = localStorage.getItem(LOCAL_STORAGE_CATEGORIES);
+      if (savedCats) {
+        const parsed = JSON.parse(savedCats);
+        if (Array.isArray(parsed)) {
+          localStorage.setItem(LOCAL_STORAGE_CATEGORIES, JSON.stringify(sanitizeCategories(parsed)));
+        }
+      }
+      const savedProds = localStorage.getItem(LOCAL_STORAGE_PRODUCTS);
+      if (savedProds) {
+        const parsed = JSON.parse(savedProds);
+        if (Array.isArray(parsed)) {
+          localStorage.setItem(LOCAL_STORAGE_PRODUCTS, JSON.stringify(sanitizeProducts(parsed)));
+        }
+      }
+    } catch {}
+  }, []);
+
   // Load real data from existing Supabase database
   const refreshCatalog = async () => {
     const supabase = getSupabase();
@@ -835,9 +994,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           product_count: Number(c.product_count) || 0,
           image_url: c.image_url || '',
         }));
-        setCategories(formattedCats);
+        setCategories(sanitizeCategories(formattedCats));
       } else {
-        setCategories((prev) => (prev.length > 0 ? prev : INITIAL_CATEGORIES));
+        setCategories((prev) => sanitizeCategories(prev.length > 0 ? prev : INITIAL_CATEGORIES));
       }
 
       // 2. Fetch products directly from Supabase products table (NO demo fallback merging)
@@ -959,9 +1118,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             created_at: p.created_at,
           };
         });
-        setBaseProducts(formattedProds);
+        setBaseProducts(sanitizeProducts(formattedProds));
       } else {
-        setBaseProducts((prev) => (prev.length > 0 ? prev : INITIAL_PRODUCTS));
+        setBaseProducts((prev) => sanitizeProducts(prev.length > 0 ? prev : INITIAL_PRODUCTS));
       }
 
       // 3. Fetch orders from Supabase orders table
@@ -2307,6 +2466,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         showToast('Database connection unavailable', 'error');
         return false;
       }
+      await supabase.from('products').delete().eq('category_id', id);
       const { error } = await supabase.from('categories').delete().eq('id', id);
       if (error) {
         showToast(`Failed to delete category from Supabase: ${error.message}`, 'error');
@@ -2315,6 +2475,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     setCategories((prev) => prev.filter((c) => c.id !== id));
+    setBaseProducts((prev) => prev.filter((p) => p.category_id !== id));
     showToast('Category deleted', 'info');
     return true;
   };
@@ -2754,6 +2915,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         toggleCouponActive,
         toast,
         showToast,
+        themeMode,
+        isDarkMode,
+        setThemeMode,
+        toggleDarkMode,
       }}
     >
       {children}

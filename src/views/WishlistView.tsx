@@ -8,22 +8,22 @@ export const WishlistView: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-4 pb-12">
       {/* Top Header */}
-      <div className="flex items-center justify-between py-2 border-b border-slate-200">
+      <div className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigateTo('home')}
-            className="p-2 rounded-xl hover:bg-slate-100 text-slate-700 transition-colors"
+            className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
             Wishlist ({wishlist.length})
           </h1>
         </div>
 
         <button
           onClick={() => navigateTo('cart')}
-          className="relative p-2 rounded-xl hover:bg-slate-100 text-slate-700 transition-colors"
+          className="relative p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
         >
           <ShoppingCart className="w-5 h-5" />
           {cartCount > 0 && (
@@ -40,12 +40,12 @@ export const WishlistView: React.FC = () => {
           {wishlist.map(({ product }) => (
             <div
               key={product.id}
-              className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between gap-4"
+              className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-4"
             >
               {/* Product Image */}
               <div
                 onClick={() => navigateTo('product_detail', { productId: product.id })}
-                className="w-20 h-20 bg-slate-50 rounded-xl p-2 flex items-center justify-center shrink-0 cursor-pointer overflow-hidden"
+                className="w-20 h-20 bg-slate-50 dark:bg-slate-950 rounded-xl p-2 flex items-center justify-center shrink-0 cursor-pointer overflow-hidden border border-slate-100 dark:border-slate-800"
               >
                 <img
                   src={product.images[0]}
@@ -60,14 +60,14 @@ export const WishlistView: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <h3
                     onClick={() => navigateTo('product_detail', { productId: product.id })}
-                    className="text-sm font-bold text-slate-900 truncate hover:text-blue-600 cursor-pointer"
+                    className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
                   >
                     {product.name}
                   </h3>
 
                   <button
                     onClick={() => toggleWishlist(product)}
-                    className="text-pink-600 hover:text-pink-700 p-1"
+                    className="text-pink-600 dark:text-pink-400 hover:text-pink-700 p-1"
                     title="Remove from Wishlist"
                   >
                     <Heart className="w-4 h-4 fill-current" />
@@ -75,11 +75,11 @@ export const WishlistView: React.FC = () => {
                 </div>
 
                 <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-sm font-extrabold text-slate-900 tabular-nums">
+                  <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tabular-nums">
                     ₹{product.price.toLocaleString('en-IN')}
                   </span>
                   {product.original_price > product.price && (
-                    <span className="text-xs text-slate-400 line-through tabular-nums">
+                    <span className="text-xs text-slate-400 dark:text-slate-500 line-through tabular-nums">
                       ₹{product.original_price.toLocaleString('en-IN')}
                     </span>
                   )}
@@ -89,7 +89,7 @@ export const WishlistView: React.FC = () => {
                 <div className="flex items-center gap-1 text-xs text-amber-500 font-bold mt-1">
                   <Star className="w-3.5 h-3.5 fill-current" />
                   <span>{product.rating}</span>
-                  <span className="text-slate-400 font-normal">
+                  <span className="text-slate-400 dark:text-slate-500 font-normal">
                     ({product.review_count > 1000 ? `${(product.review_count / 1000).toFixed(1)}k` : product.review_count})
                   </span>
                 </div>
@@ -107,12 +107,12 @@ export const WishlistView: React.FC = () => {
           ))}
         </div>
       ) : (
-        <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 p-6">
-          <div className="w-14 h-14 rounded-full bg-pink-50 text-pink-500 flex items-center justify-center mx-auto mb-3">
+        <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6">
+          <div className="w-14 h-14 rounded-full bg-pink-50 dark:bg-pink-950/60 text-pink-500 dark:text-pink-400 flex items-center justify-center mx-auto mb-3">
             <Heart className="w-7 h-7" />
           </div>
-          <h2 className="text-base font-bold text-slate-900">Your Wishlist is Empty</h2>
-          <p className="text-xs text-slate-500 mt-1">
+          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Your Wishlist is Empty</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Tap the heart icon on any product to save it here for later!
           </p>
           <button

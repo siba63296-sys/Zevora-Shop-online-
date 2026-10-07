@@ -87,19 +87,19 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ product }) => {
     : reviews;
 
   return (
-    <div id="customer-reviews" className="space-y-6 pt-6 border-t border-slate-200 scroll-mt-20">
+    <div id="customer-reviews" className="space-y-6 pt-6 border-t border-slate-200 dark:border-slate-800 scroll-mt-20">
       {/* Section Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
+            <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
               Customer Reviews &amp; Ratings
             </h3>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
               {totalReviewsCount} Verified
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Authentic feedback from verified purchasers of {product.name}
           </p>
         </div>
@@ -116,16 +116,16 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ product }) => {
 
       {/* Review Submission Form Modal / Panel */}
       {showForm && (
-        <div className="bg-slate-50 border border-blue-200 rounded-3xl p-5 sm:p-6 shadow-sm animate-in fade-in zoom-in-95 duration-200 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
+        <div className="bg-slate-50 dark:bg-slate-900 border border-blue-200 dark:border-blue-900/60 rounded-3xl p-5 sm:p-6 shadow-sm animate-in fade-in zoom-in-95 duration-200 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800 pb-3">
             <div>
-              <h4 className="text-sm font-bold text-slate-900">Write a Review for {product.name}</h4>
-              <p className="text-xs text-slate-500">Share your genuine experience with other shoppers.</p>
+              <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">Write a Review for {product.name}</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Share your genuine experience with other shoppers.</p>
             </div>
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="text-slate-400 hover:text-slate-700 p-1 rounded-lg"
+              className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 rounded-lg"
             >
               <X className="w-4 h-4" />
             </button>
@@ -269,10 +269,10 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ product }) => {
       )}
 
       {/* Ratings Overview & Star Distribution */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 bg-slate-50 rounded-3xl p-5 sm:p-6 border border-slate-200/80">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 bg-slate-50 dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800">
         {/* Left: Big Average Rating Display */}
-        <div className="md:col-span-4 flex flex-col justify-center items-center text-center p-2 border-b md:border-b-0 md:border-r border-slate-200">
-          <span className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight tabular-nums">
+        <div className="md:col-span-4 flex flex-col justify-center items-center text-center p-2 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800">
+          <span className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-slate-100 tracking-tight tabular-nums">
             {averageRating}
           </span>
           <div className="flex items-center gap-1 text-amber-400 my-2">
@@ -280,15 +280,15 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ product }) => {
               <Star
                 key={s}
                 className={`w-4 h-4 ${
-                  s <= Math.round(averageRating) ? 'fill-current' : 'text-slate-300'
+                  s <= Math.round(averageRating) ? 'fill-current' : 'text-slate-300 dark:text-slate-700'
                 }`}
               />
             ))}
           </div>
-          <p className="text-xs font-semibold text-slate-500">
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
             Average based on {totalReviewsCount} verified rating{totalReviewsCount === 1 ? '' : 's'}
           </p>
-          <div className="mt-2 flex items-center gap-1 text-[11px] text-emerald-600 font-bold">
+          <div className="mt-2 flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>100% Verified Purchaser Feedback</span>
           </div>
@@ -301,23 +301,23 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ product }) => {
               key={stars}
               type="button"
               onClick={() => setFilterRating(filterRating === stars ? null : stars)}
-              className={`flex items-center gap-3 text-xs group text-left hover:bg-white p-1 rounded-lg transition-colors ${
-                filterRating === stars ? 'bg-white shadow-2xs font-bold ring-1 ring-blue-500/20' : ''
+              className={`flex items-center gap-3 text-xs group text-left hover:bg-white dark:hover:bg-slate-800 p-1 rounded-lg transition-colors ${
+                filterRating === stars ? 'bg-white dark:bg-slate-800 shadow-2xs font-bold ring-1 ring-blue-500/20' : ''
               }`}
             >
-              <span className="w-12 font-semibold text-slate-700 flex items-center gap-1 shrink-0">
+              <span className="w-12 font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1 shrink-0">
                 <span>{stars}</span>
                 <Star className="w-3 h-3 fill-current text-amber-400" />
               </span>
 
-              <div className="flex-1 h-2.5 bg-slate-200 rounded-full overflow-hidden">
+              <div className="flex-1 h-2.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-amber-400 rounded-full transition-all duration-500"
                   style={{ width: `${percentage}%` }}
                 ></div>
               </div>
 
-              <span className="w-14 text-right font-medium text-slate-400 tabular-nums shrink-0">
+              <span className="w-14 text-right font-medium text-slate-400 dark:text-slate-500 tabular-nums shrink-0">
                 {count > 0 ? `${percentage}% (${count})` : '0%'}
               </span>
             </button>
@@ -328,13 +328,13 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ product }) => {
       {/* Filter Tag if active */}
       {filterRating && (
         <div className="flex items-center justify-between px-1">
-          <span className="text-xs font-semibold text-slate-600">
+          <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
             Filtering by <strong>{filterRating} Star</strong> reviews
           </span>
           <button
             type="button"
             onClick={() => setFilterRating(null)}
-            className="text-xs text-blue-600 font-bold hover:underline"
+            className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline"
           >
             Show All ({totalReviewsCount}) Reviews
           </button>
@@ -347,18 +347,18 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ product }) => {
           filteredReviews.map((rev) => (
             <div
               key={rev.id}
-              className="p-5 bg-white rounded-2xl border border-slate-200/80 shadow-2xs space-y-2.5"
+              className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-2.5"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center text-xs font-extrabold shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 flex items-center justify-center text-xs font-extrabold shrink-0">
                     {rev.user_name ? rev.user_name.charAt(0).toUpperCase() : 'U'}
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-slate-900">{rev.user_name}</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{rev.user_name}</span>
                       {rev.verified_purchase && (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded-sm">
+                        <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-sm">
                           <CheckCircle2 className="w-3 h-3" />
                           <span>Verified Purchase</span>
                         </span>
@@ -367,7 +367,7 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ product }) => {
                   </div>
                 </div>
 
-                <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                <span className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
                   <span>
                     {new Date(rev.created_at).toLocaleDateString('en-IN', {
@@ -386,29 +386,29 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ product }) => {
                     <Star
                       key={s}
                       className={`w-3.5 h-3.5 ${
-                        s <= rev.rating ? 'fill-current' : 'text-slate-200'
+                        s <= rev.rating ? 'fill-current' : 'text-slate-200 dark:text-slate-700'
                       }`}
                     />
                   ))}
                 </div>
 
                 {rev.title && (
-                  <h5 className="text-sm font-bold text-slate-900">{rev.title}</h5>
+                  <h5 className="text-sm font-bold text-slate-900 dark:text-slate-100">{rev.title}</h5>
                 )}
               </div>
 
               {/* Review Comment */}
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                 {rev.comment}
               </p>
 
               {/* Helpful interaction */}
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
                 <span>Was this review helpful?</span>
                 <button
                   type="button"
                   onClick={() => markReviewHelpful(rev.id, product.id)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-slate-100 text-slate-600 font-semibold transition-colors"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold transition-colors"
                 >
                   <ThumbsUp className="w-3.5 h-3.5" />
                   <span>Helpful ({rev.helpful_count || 0})</span>
@@ -417,8 +417,8 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ product }) => {
             </div>
           ))
         ) : (
-          <div className="text-center py-10 bg-white rounded-2xl border border-slate-200 p-6">
-            <p className="text-xs text-slate-500 font-medium">
+          <div className="text-center py-10 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               No reviews matching your filter yet.
             </p>
           </div>
