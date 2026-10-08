@@ -111,6 +111,7 @@ export const AdminView: React.FC = () => {
     images: [] as string[],
     rating: 4.5,
     review_count: 10,
+    is_featured: false,
   });
 
   // Image Upload State
@@ -293,6 +294,7 @@ export const AdminView: React.FC = () => {
         stock_quantity: Number(productForm.stock_quantity),
         in_stock: Number(productForm.stock_quantity) > 0,
         images: finalImages,
+        is_featured: Boolean(productForm.is_featured),
       });
       setEditingProduct(null);
     } else {
@@ -311,7 +313,7 @@ export const AdminView: React.FC = () => {
         images: finalImages,
         specs: [{ label: 'Standard', value: 'Original' }],
         colors: [{ name: 'Default', hex: '#0f172a' }],
-        is_featured: true,
+        is_featured: Boolean(productForm.is_featured),
       });
     }
 
@@ -333,6 +335,7 @@ export const AdminView: React.FC = () => {
       images: [],
       rating: 4.5,
       review_count: 10,
+      is_featured: false,
     });
     setUploadError('');
     setUploadProgress('');
@@ -358,6 +361,7 @@ export const AdminView: React.FC = () => {
       images: prodImages,
       rating: prod.rating,
       review_count: prod.review_count,
+      is_featured: Boolean(prod.is_featured),
     });
     setUploadError('');
     setUploadProgress('');
@@ -438,7 +442,7 @@ export const AdminView: React.FC = () => {
     const discPct = offer.discount_percentage || (parseInt((offer.discount_text || '').replace(/\D/g, ''), 10) || 30);
 
     setOfferForm({
-      title: offer.title,
+      title: offer.title || '',
       discount_percentage: discPct,
       discount_text: offer.discount_text || `${discPct}% OFF`,
       category_id: offer.category_id || 'all',
@@ -482,10 +486,6 @@ export const AdminView: React.FC = () => {
 
   const handleSaveOffer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!offerForm.title.trim()) {
-      showToast('Please provide an offer title', 'error');
-      return;
-    }
     if (!offerForm.image_url.trim()) {
       showToast('Please upload or provide a banner image URL', 'error');
       return;
@@ -1152,6 +1152,7 @@ export const AdminView: React.FC = () => {
                     <th className="py-3 px-4">Category</th>
                     <th className="py-3 px-4">Price</th>
                     <th className="py-3 px-4">Stock</th>
+                    <th className="py-3 px-4 text-center">Home Favourite</th>
                     <th className="py-3 px-4">Variants</th>
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
@@ -1221,6 +1222,30 @@ export const AdminView: React.FC = () => {
                             </span>
                           )}
                         </td>
+                        <td className="py-3 px-4 text-center">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const nextState = !prod.is_featured;
+                              await updateProduct(prod.id, { is_featured: nextState });
+                              showToast(
+                                nextState
+                                  ? `"${prod.name}" marked as Favourite & Featured on Home Page!`
+                                  : `"${prod.name}" removed from Home Page Featured Deals.`,
+                                nextState ? 'success' : 'info'
+                              );
+                            }}
+                            className={`px-2.5 py-1 rounded-xl border transition-all cursor-pointer inline-flex items-center gap-1.5 text-xs font-bold ${
+                              prod.is_featured
+                                ? 'text-amber-800 bg-amber-50 border-amber-300 hover:bg-amber-100 shadow-2xs'
+                                : 'text-slate-400 bg-slate-50 border-slate-200 hover:text-amber-600 hover:border-amber-300'
+                            }`}
+                            title={prod.is_featured ? 'Click to remove from Home Page Featured Deals' : 'Click to mark as Favourite / Featured on Home Page'}
+                          >
+                            <Star className={`w-3.5 h-3.5 ${prod.is_featured ? 'fill-amber-500 text-amber-500' : ''}`} />
+                            <span>{prod.is_featured ? 'Featured' : 'Mark'}</span>
+                          </button>
+                        </td>
                         <td className="py-3 px-4 text-[11px] text-slate-500">
                           {hasVars ? (
                             <div className="space-y-0.5">
@@ -1282,7 +1307,7 @@ export const AdminView: React.FC = () => {
                   })}
                   {filteredProducts.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-slate-400">
+                      <td colSpan={7} className="py-12 text-center text-slate-400">
                         <Package className="w-8 h-8 mx-auto text-slate-300 mb-2" />
                         <p className="font-bold text-slate-600 text-sm">No products found</p>
                         <p className="text-xs text-slate-400 mt-1">
@@ -1480,7 +1505,9 @@ export const AdminView: React.FC = () => {
 
                           {/* Title & Description */}
                           <td className="p-3.5 max-w-xs">
-                            <p className="font-bold text-slate-900 truncate">{offer.title}</p>
+                            <p className="font-bold text-slate-900 truncate">
+                              {offer.title?.trim() || <span className="text-slate-400 font-normal italic">No Title</span>}
+                            </p>
                             {offer.description && (
                               <p className="text-[11px] text-slate-500 truncate mt-0.5">{offer.description}</p>
                             )}
@@ -1577,7 +1604,10 @@ export const AdminView: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  if (confirm(`Delete offer "${offer.title}"?`)) {
+                                  const confirmMsg = offer.title?.trim()
+                                    ? `Delete offer "${offer.title}"?`
+                                    : 'Delete this offer banner?';
+                                  if (confirm(confirmMsg)) {
                                     deleteOffer(offer.id);
                                   }
                                 }}
@@ -2481,6 +2511,27 @@ export const AdminView: React.FC = () => {
                 />
               </div>
 
+              {/* Home Page Featured / Favourite Selection */}
+              <div>
+                <label className="flex items-center gap-2.5 cursor-pointer p-3 rounded-xl border border-amber-200 bg-amber-50/70 hover:bg-amber-50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(productForm.is_featured)}
+                    onChange={(e) => setProductForm({ ...productForm, is_featured: e.target.checked })}
+                    className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 cursor-pointer"
+                  />
+                  <div className="flex-1">
+                    <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                      <Star className={`w-3.5 h-3.5 ${productForm.is_featured ? 'fill-amber-500 text-amber-500' : 'text-amber-600'}`} />
+                      <span>Featured / Favourite Product on Home Page</span>
+                    </span>
+                    <p className="text-[11px] text-amber-700/80 mt-0.5">
+                      Showcase this product on the Home Page "Featured Deals" section in real-time.
+                    </p>
+                  </div>
+                </label>
+              </div>
+
               {/* Product Photos Section (Multi-Image Gallery & Supabase Storage) */}
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
@@ -2813,12 +2864,11 @@ export const AdminView: React.FC = () => {
               {/* Offer Title */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Offer Title <span className="text-rose-500">*</span>
+                  Offer Title <span className="text-slate-400 font-normal">(Optional)</span>
                 </label>
                 <input
                   type="text"
-                  required
-                  placeholder="e.g. Mega Clearance Sale or Festival Special"
+                  placeholder="e.g. Mega Clearance Sale or Festival Special (Optional)"
                   value={offerForm.title}
                   onChange={(e) => setOfferForm({ ...offerForm, title: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400"
@@ -2904,11 +2954,11 @@ export const AdminView: React.FC = () => {
               {/* Description / Subtitle */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Offer Description / Subtitle
+                  Offer Description / Subtitle <span className="text-slate-400 font-normal">(Optional)</span>
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Short description of the deal or products covered"
+                  placeholder="Short description of the deal or products covered (Optional)"
                   value={offerForm.description}
                   onChange={(e) => setOfferForm({ ...offerForm, description: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400"

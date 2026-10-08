@@ -125,10 +125,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <div className="flex items-center gap-1.5 mt-1.5">
             <div className="flex items-center text-amber-500 text-xs font-bold">
               <Star className="w-3.5 h-3.5 fill-current mr-0.5" />
-              <span>{product.rating}</span>
+              <span>{Number(product.rating || 4.5)}</span>
             </div>
             <span className="text-[11px] text-slate-400 dark:text-slate-500">
-              ({product.review_count > 1000 ? `${(product.review_count / 1000).toFixed(1)}k` : product.review_count})
+              ({(Number(product.review_count || 0)) > 1000 ? `${((Number(product.review_count || 0)) / 1000).toFixed(1)}k` : Number(product.review_count || 0)})
             </span>
             <span
               className={`text-[11px] font-bold ml-auto ${
@@ -145,12 +145,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <div className="flex flex-col">
             <div className="flex items-baseline gap-1.5">
               <span className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100 tabular-nums">
-                ₹{product.price.toLocaleString('en-IN')}
+                ₹{(Number(product.price) || 0).toLocaleString('en-IN')}
               </span>
             </div>
-            {product.original_price > product.price && (
+            {Number(product.original_price || 0) > Number(product.price || 0) && (
               <span className="text-xs text-slate-400 dark:text-slate-500 line-through tabular-nums">
-                ₹{product.original_price.toLocaleString('en-IN')}
+                ₹{(Number(product.original_price) || 0).toLocaleString('en-IN')}
               </span>
             )}
           </div>

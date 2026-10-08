@@ -68,18 +68,30 @@ export const ProductDetailView: React.FC = () => {
     return products.find((p) => p.id === targetId) || null;
   }, [products, targetId]);
 
-  const [remoteProduct, setRemoteProduct] = useState<Product | null>(cachedProduct);
+  const [remoteProduct, setRemoteProduct] = useState<Product | null>(() => {
+    return cachedProduct && cachedProduct.id === targetId ? cachedProduct : null;
+  });
   const [isLoadingProduct, setIsLoadingProduct] = useState<boolean>(!cachedProduct && Boolean(targetId));
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // Sync with cachedProduct if it changes or becomes available
+  // Sync with cachedProduct or reset when targetId changes
   useEffect(() => {
-    if (cachedProduct) {
+    if (!targetId) {
+      setRemoteProduct(null);
+      setIsLoadingProduct(false);
+      setFetchError(null);
+      return;
+    }
+    if (cachedProduct && cachedProduct.id === targetId) {
       setRemoteProduct(cachedProduct);
       setIsLoadingProduct(false);
       setFetchError(null);
+    } else {
+      setRemoteProduct((prev) => (prev?.id === targetId ? prev : null));
+      setIsLoadingProduct(true);
+      setFetchError(null);
     }
-  }, [cachedProduct]);
+  }, [targetId, cachedProduct]);
 
   // 3. Fetch product from Supabase using its UUID
   useEffect(() => {
@@ -247,7 +259,12 @@ export const ProductDetailView: React.FC = () => {
     };
   }, [targetId, categories]);
 
-  const product = remoteProduct || cachedProduct;
+  const product =
+    remoteProduct && remoteProduct.id === targetId
+      ? remoteProduct
+      : cachedProduct && cachedProduct.id === targetId
+      ? cachedProduct
+      : null;
 
   const isCompared = product ? isInComparison(product.id) : false;
 

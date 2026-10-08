@@ -1245,6 +1245,49 @@ app.post('/api/products', async (req: Request, res: Response) => {
   }
 });
 
+app.get('/api/products/featured', async (_req: Request, res: Response) => {
+  if (!supabase) {
+    res.status(503).json({ success: false, error: 'Database client unavailable' });
+    return;
+  }
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_featured', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      res.status(400).json({ success: false, error: error.message });
+      return;
+    }
+    res.json({ success: true, products: data || [] });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message });
+  }
+});
+
+app.get('/api/products', async (_req: Request, res: Response) => {
+  if (!supabase) {
+    res.status(503).json({ success: false, error: 'Database client unavailable' });
+    return;
+  }
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      res.status(400).json({ success: false, error: error.message });
+      return;
+    }
+    res.json({ success: true, products: data || [] });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message });
+  }
+});
+
 app.put('/api/products/:id', async (req: Request, res: Response) => {
   if (!supabase) {
     res.status(503).json({ success: false, error: 'Database client unavailable' });
@@ -1292,7 +1335,25 @@ app.put('/api/products/:id', async (req: Request, res: Response) => {
       updates.rating_count = Number(raw.review_count ?? raw.rating_count);
     }
     if (raw.brand !== undefined) updates.brand = raw.brand;
-    if (raw.is_featured !== undefined) updates.is_featured = Boolean(raw.is_featured);
+    if (raw.is_featured !== undefined) {
+      updates.is_featured = Boolean(raw.is_featured);
+      if (raw.specs === undefined) {
+        // Fetch existing specs so we NEVER wipe out specs
+        const { data: curProd } = await supabase.from('products').select('specs').eq('id', id).maybeSingle();
+        const curSpecs = curProd?.specs && typeof curProd.specs === 'object' && !Array.isArray(curProd.specs)
+          ? { ...curProd.specs }
+          : {};
+        if (raw.is_featured) {
+          updates.specs = {
+            ...curSpecs,
+            featured_at: raw.featured_at || new Date().toISOString(),
+          };
+        } else {
+          const { featured_at, ...restSpecs } = curSpecs;
+          updates.specs = restSpecs;
+        }
+      }
+    }
     if (raw.specs !== undefined) updates.specs = raw.specs;
 
     const { data, error } = await supabase.from('products').update(updates).eq('id', id).select();

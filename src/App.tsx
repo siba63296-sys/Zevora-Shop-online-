@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StoreProvider, useStore } from './context/StoreContext';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { Toast } from './components/Toast';
 import { AdsterraBanner } from './components/AdsterraBanner';
 import { ProductComparisonModal, ComparisonDock } from './components/ProductComparisonModal';
+import { resolveImageUrl } from './utils/imageUrl';
 
 // Views
 import { HomeView } from './views/HomeView';
@@ -32,6 +33,133 @@ import {
   RotateCcw,
   CreditCard,
 } from 'lucide-react';
+
+/**
+ * Dynamic head injection script in the main App component that reads store_settings
+ * from the store context and updates <link rel='icon'>, <link rel='apple-touch-icon'>,
+ * and related manifest / metadata tags in the DOM.
+ */
+const DynamicHeadInjector: React.FC = () => {
+  const { storeSettings } = useStore();
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const storeName = storeSettings?.store_name || 'Zevora';
+    const tagline = storeSettings?.tagline ? ` - ${storeSettings.tagline}` : '';
+    document.title = `${storeName}${tagline}`;
+
+    const rawFavicon = storeSettings?.favicon_url || '/zevora-header-logo.png';
+    const faviconUrl =
+      rawFavicon.startsWith('http://') ||
+      rawFavicon.startsWith('https://') ||
+      rawFavicon.startsWith('/') ||
+      rawFavicon.startsWith('data:')
+        ? rawFavicon
+        : resolveImageUrl(rawFavicon);
+
+    if (faviconUrl) {
+      // Determine MIME type for the configured favicon
+      let mimeType = 'image/png';
+      if (faviconUrl.endsWith('.svg')) mimeType = 'image/svg+xml';
+      else if (faviconUrl.endsWith('.ico')) mimeType = 'image/x-icon';
+      else if (faviconUrl.endsWith('.jpg') || faviconUrl.endsWith('.jpeg')) mimeType = 'image/jpeg';
+      else if (faviconUrl.endsWith('.webp')) mimeType = 'image/webp';
+
+      // 1. Standard <link rel="icon">
+      let iconLink = document.querySelector<HTMLLinkElement>("link[rel='icon']:not([sizes])") ||
+                     document.querySelector<HTMLLinkElement>("link[rel='icon']");
+      if (!iconLink) {
+        iconLink = document.createElement('link');
+        iconLink.rel = 'icon';
+        document.head.appendChild(iconLink);
+      }
+      iconLink.type = mimeType;
+      iconLink.href = faviconUrl;
+
+      // 2. Shortcut icon for legacy browsers
+      let shortcutLink = document.querySelector<HTMLLinkElement>("link[rel='shortcut icon']");
+      if (!shortcutLink) {
+        shortcutLink = document.createElement('link');
+        shortcutLink.rel = 'shortcut icon';
+        document.head.appendChild(shortcutLink);
+      }
+      shortcutLink.type = mimeType;
+      shortcutLink.href = faviconUrl;
+
+      // 3. Apple Touch Icon for iOS Safari & search engines
+      let appleLink = document.querySelector<HTMLLinkElement>("link[rel='apple-touch-icon']");
+      if (!appleLink) {
+        appleLink = document.createElement('link');
+        appleLink.rel = 'apple-touch-icon';
+        document.head.appendChild(appleLink);
+      }
+      appleLink.href = faviconUrl;
+
+      // 4. Update any existing sized icon links so crawlers and high-DPI screens resolve the dynamic favicon
+      const sizedIcons = document.querySelectorAll<HTMLLinkElement>("link[rel='icon'][sizes]");
+      sizedIcons.forEach((el) => {
+        el.href = faviconUrl;
+        el.type = mimeType;
+      });
+
+      // 5. Windows tile metadata
+      let msTile = document.querySelector<HTMLMetaElement>("meta[name='msapplication-TileImage']");
+      if (!msTile) {
+        msTile = document.createElement('meta');
+        msTile.name = 'msapplication-TileImage';
+        document.head.appendChild(msTile);
+      }
+      msTile.content = faviconUrl;
+
+      // 6. Web App Manifest with dynamic icons and branding
+      const manifestObj = {
+        name: storeName,
+        short_name: storeName,
+        start_url: '/',
+        display: 'standalone',
+        background_color: '#ffffff',
+        theme_color: '#2563eb',
+        icons: [
+          {
+            src: faviconUrl,
+            sizes: '192x192',
+            type: mimeType,
+          },
+          {
+            src: faviconUrl,
+            sizes: '512x512',
+            type: mimeType,
+          },
+        ],
+      };
+
+      let manifestBlobUrl: string | null = null;
+      try {
+        const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
+        manifestBlobUrl = URL.createObjectURL(manifestBlob);
+
+        let manifestLink = document.querySelector<HTMLLinkElement>("link[rel='manifest']");
+        if (!manifestLink) {
+          manifestLink = document.createElement('link');
+          manifestLink.rel = 'manifest';
+          document.head.appendChild(manifestLink);
+        }
+        manifestLink.href = manifestBlobUrl;
+      } catch {}
+
+      return () => {
+        if (manifestBlobUrl) {
+          try {
+            URL.revokeObjectURL(manifestBlobUrl);
+          } catch {}
+        }
+      };
+    }
+  }, [storeSettings?.store_name, storeSettings?.tagline, storeSettings?.favicon_url]);
+
+  return null;
+};
 
 const MainContent: React.FC = () => {
   const { currentPage, navigateTo, storeSettings } = useStore();
@@ -338,6 +466,7 @@ const MainContent: React.FC = () => {
 export default function App() {
   return (
     <StoreProvider>
+      <DynamicHeadInjector />
       <MainContent />
     </StoreProvider>
   );

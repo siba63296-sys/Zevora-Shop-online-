@@ -61,6 +61,7 @@ export interface Product {
   size_chart?: SizeChart;
   size_chart_type?: string;
   is_featured?: boolean;
+  featured_at?: string;
   is_deal?: boolean;
   applied_offer_id?: string;
   applied_offer_title?: string;
@@ -227,15 +228,15 @@ export interface ProductReview {
 
 export interface Offer {
   id: string;
-  title: string;
-  discount_text: string;
+  title?: string;
+  discount_text?: string;
   discount_percentage?: number;
   category_id?: string;
   category_name?: string;
-  description: string;
+  description?: string;
   image_url: string;
-  button_text: string;
-  button_link: string;
+  button_text?: string;
+  button_link?: string;
   start_at?: string | null;
   end_at?: string | null;
   is_active: boolean;

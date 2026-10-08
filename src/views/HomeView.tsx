@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { ProductCard } from '../components/ProductCard';
 import { CategoryCard } from '../components/CategoryCard';
@@ -21,9 +21,28 @@ import {
 } from 'lucide-react';
 
 export const HomeView: React.FC = () => {
-  const { products, categories, cartCount, user, navigateTo, storeSettings } = useStore();
+  const { products, categories, cartCount, user, navigateTo, storeSettings, refreshCatalog } = useStore();
 
-  const featuredProducts = products.filter((p) => p.is_featured);
+  // Ensure latest catalog synchronization with Supabase on customer Home Page load
+  useEffect(() => {
+    refreshCatalog().catch(() => {});
+  }, []);
+
+  // Fetch all products marked as Favourite / Featured in Admin, prioritizing newly featured/added products
+  const featuredProducts = useMemo(() => {
+    return products
+      .filter((p) => Boolean(p.is_featured))
+      .sort((a, b) => {
+        const timeA = a.featured_at
+          ? new Date(a.featured_at).getTime()
+          : (a.created_at ? new Date(a.created_at).getTime() : 0);
+        const timeB = b.featured_at
+          ? new Date(b.featured_at).getTime()
+          : (b.created_at ? new Date(b.created_at).getTime() : 0);
+        return timeB - timeA;
+      });
+  }, [products]);
+
   const dealProducts = products.filter((p) => p.is_deal);
 
   const userName = user?.full_name ? user.full_name.split(' ')[0] : 'Shopper';
@@ -250,11 +269,19 @@ export const HomeView: React.FC = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-          {featuredProducts.slice(0, 8).map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {featuredProducts.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            {featuredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 text-slate-400">
+            <Sparkles className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+            <p className="text-sm font-bold text-slate-600 dark:text-slate-300">No Featured Deals Selected</p>
+            <p className="text-xs text-slate-400 mt-1">Mark products as Favourite / Featured in the Admin Panel to display them here.</p>
+          </div>
+        )}
       </div>
 
       {/* Social Media Banner */}

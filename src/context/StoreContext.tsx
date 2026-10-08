@@ -38,6 +38,7 @@ import {
 } from '../lib/supabase';
 import { calculateDiscountedProduct, isOfferCurrentlyActive } from '../utils/pricing';
 import { isCouponCurrentlyActive, validateCouponForCart } from '../utils/coupons';
+import { resolveImageUrl } from '../utils/imageUrl';
 import { PRESET_COLORS } from '../utils/variants';
 
 interface StoreContextType {
@@ -240,7 +241,9 @@ export function isDeletedCategory(cat: { id?: string; name?: string; slug?: stri
   return false;
 }
 
-export function isDeletedProduct(p: { category_id?: string; category_name?: string }): boolean {
+export function isDeletedProduct(p: { category_id?: string; category_name?: string; is_featured?: boolean }): boolean {
+  // Never filter out products that are marked as Favourite / Featured
+  if (Boolean(p.is_featured)) return false;
   if (p.category_id && DELETED_CATEGORY_IDS.has(p.category_id)) return true;
   if (p.category_name && DELETED_CATEGORY_NAMES.has(p.category_name.toLowerCase().trim())) return true;
   return false;
@@ -657,14 +660,56 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const tagline = storeSettings.tagline ? ` - ${storeSettings.tagline}` : '';
       document.title = `${titleName}${tagline}`;
 
-      if (storeSettings.favicon_url) {
-        let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
-        if (!link) {
-          link = document.createElement('link');
-          link.rel = 'icon';
-          document.head.appendChild(link);
+      const rawFavicon = storeSettings.favicon_url || '/zevora-header-logo.png';
+      const faviconUrl =
+        rawFavicon.startsWith('http://') ||
+        rawFavicon.startsWith('https://') ||
+        rawFavicon.startsWith('/') ||
+        rawFavicon.startsWith('data:')
+          ? rawFavicon
+          : resolveImageUrl(rawFavicon);
+
+      if (faviconUrl) {
+        // 1. Standard <link rel="icon">
+        let iconLink = document.querySelector<HTMLLinkElement>("link[rel='icon']:not([sizes])") ||
+                       document.querySelector<HTMLLinkElement>("link[rel='icon']");
+        if (!iconLink) {
+          iconLink = document.createElement('link');
+          iconLink.rel = 'icon';
+          document.head.appendChild(iconLink);
         }
-        link.href = storeSettings.favicon_url;
+        iconLink.href = faviconUrl;
+        if (faviconUrl.endsWith('.png')) {
+          iconLink.type = 'image/png';
+        } else if (faviconUrl.endsWith('.svg')) {
+          iconLink.type = 'image/svg+xml';
+        } else if (faviconUrl.endsWith('.ico')) {
+          iconLink.type = 'image/x-icon';
+        }
+
+        // 2. Shortcut icon
+        let shortcutLink = document.querySelector<HTMLLinkElement>("link[rel='shortcut icon']");
+        if (!shortcutLink) {
+          shortcutLink = document.createElement('link');
+          shortcutLink.rel = 'shortcut icon';
+          document.head.appendChild(shortcutLink);
+        }
+        shortcutLink.href = faviconUrl;
+
+        // 3. Apple touch icon
+        let appleLink = document.querySelector<HTMLLinkElement>("link[rel='apple-touch-icon']");
+        if (!appleLink) {
+          appleLink = document.createElement('link');
+          appleLink.rel = 'apple-touch-icon';
+          document.head.appendChild(appleLink);
+        }
+        appleLink.href = faviconUrl;
+
+        // 4. Update any existing sized icon links so browsers don't favor older icons
+        const sizedIcons = document.querySelectorAll<HTMLLinkElement>("link[rel='icon'][sizes]");
+        sizedIcons.forEach((el) => {
+          el.href = faviconUrl;
+        });
       }
     }
   }, [storeSettings.store_name, storeSettings.tagline, storeSettings.favicon_url]);
@@ -1040,8 +1085,34 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setCategories((prev) => sanitizeCategories(prev.length > 0 ? prev : INITIAL_CATEGORIES));
       }
 
-      // 2. Fetch products directly from Supabase products table (NO demo fallback merging)
-      const { data: prodData, error: prodError } = await supabase.from('products').select('*').order('created_at');
+      // 2. Fetch products directly from Supabase products table (with API fallback)
+      let prodData: any[] | null = null;
+      let prodError: any = null;
+      try {
+        const res = await supabase
+          .from('products')
+          .select('*')
+          .order('created_at', { ascending: false });
+        prodData = res.data;
+        prodError = res.error;
+      } catch (e) {
+        prodError = e;
+      }
+
+      // Fallback to server endpoint /api/products if direct client query had error or returned empty
+      if (prodError || !prodData || prodData.length === 0) {
+        try {
+          const apiRes = await fetch('/api/products');
+          if (apiRes.ok) {
+            const apiJson = await apiRes.json();
+            if (apiJson.success && Array.isArray(apiJson.products) && apiJson.products.length > 0) {
+              prodData = apiJson.products;
+              prodError = null;
+            }
+          }
+        } catch {}
+      }
+
       if (!prodError && prodData && prodData.length > 0) {
         const formattedProds: Product[] = prodData.map((p: any) => {
           let formattedSpecs: { label: string; value: string }[] = [];
@@ -1054,12 +1125,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               formattedSpecs = rawSpecs.items;
             } else {
               formattedSpecs = Object.entries(rawSpecs)
-                .filter(([k]) => !['variants', 'colors', 'sizes', 'size_chart', 'brand', 'sku', 'subcategory', 'color_variants'].includes(k))
+                .filter(([k]) => !['variants', 'colors', 'sizes', 'size_chart', 'brand', 'sku', 'subcategory', 'color_variants', 'featured_at'].includes(k))
                 .map(([label, value]) => ({
                   label,
                   value: typeof value === 'object' ? JSON.stringify(value) : String(value),
                 }));
             }
+          }
+
+          // Extract featured_at timestamp if present
+          let featuredAt: string | undefined = undefined;
+          if (rawSpecs && typeof rawSpecs === 'object' && !Array.isArray(rawSpecs) && rawSpecs.featured_at) {
+            featuredAt = String(rawSpecs.featured_at);
+          } else if (Array.isArray(rawSpecs)) {
+            const match = rawSpecs.find((s: any) => s && s.label === 'featured_at');
+            if (match) featuredAt = String(match.value);
+          }
+          if (!featuredAt && Boolean(p.is_featured)) {
+            featuredAt = p.created_at;
           }
 
           const price = Number(p.price) || 0;
@@ -1168,11 +1251,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             color_variants: parsedColorVariants,
             size_chart: parsedSizeChart,
             is_featured: Boolean(p.is_featured),
+            featured_at: featuredAt,
             is_deal: Boolean(p.is_deal),
             created_at: p.created_at,
           };
         });
-        setBaseProducts(sanitizeProducts(formattedProds));
+        const sanitized = sanitizeProducts(formattedProds);
+        setBaseProducts(sanitized);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_PRODUCTS, JSON.stringify(sanitized));
+        } catch {}
       } else {
         setBaseProducts((prev) => sanitizeProducts(prev.length > 0 ? prev : INITIAL_PRODUCTS));
       }
@@ -1336,19 +1424,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, []);
 
-  // Real-time synchronization for offers from Supabase
+  // Real-time synchronization for offers and products from Supabase
   useEffect(() => {
     const supabase = getSupabase();
     if (!supabase) return;
 
     try {
       const channel = supabase
-        .channel('realtime_offers_sync')
+        .channel('realtime_store_sync')
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'offers' },
           () => {
             refreshOffers();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'products' },
+          () => {
+            refreshCatalog();
           }
         )
         .subscribe();
@@ -1357,9 +1452,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         supabase.removeChannel(channel);
       };
     } catch (realtimeErr) {
-      console.warn('Realtime offers subscription note:', realtimeErr);
+      console.warn('Realtime sync subscription note:', realtimeErr);
     }
-  }, []);
+  }, [isSupabaseConnected]);
 
   // Load profile linked to authenticated Supabase user
   const loadUserProfile = async (authUser: any) => {
@@ -1455,14 +1550,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     const handleUrlChange = () => {
       const info = getInitialPageInfo();
-      if (info.productId) {
-        setSelectedProductId(info.productId);
-      }
-      if (info.categoryId) {
-        setSelectedCategoryId(info.categoryId);
-      }
+      setSelectedProductId(info.productId || null);
+      setSelectedCategoryId(info.categoryId || null);
       if (info.searchQuery !== undefined) {
         setSearchQuery(info.searchQuery);
+      } else if (info.page !== 'search') {
+        setSearchQuery('');
       }
       setCurrentPage(info.page);
     };
@@ -2393,7 +2486,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       dbUpdates.rating_count = Number(updates.review_count ?? (updates as any).rating_count);
     }
     if ((updates as any).brand !== undefined) dbUpdates.brand = (updates as any).brand;
-    if (updates.is_featured !== undefined) dbUpdates.is_featured = Boolean(updates.is_featured);
+    if (updates.is_featured !== undefined) {
+      dbUpdates.is_featured = Boolean(updates.is_featured);
+      if (updates.is_featured) {
+        dbUpdates.featured_at = (updates as any).featured_at || new Date().toISOString();
+      }
+    }
     if (updates.specs !== undefined) dbUpdates.specs = updates.specs;
 
     if (
@@ -2451,19 +2549,37 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
-    setBaseProducts((prev) =>
-      prev.map((p) => {
+    setBaseProducts((prev) => {
+      const updated = prev.map((p) => {
         if (p.id !== id) return p;
         const newCatId = validCatId || p.category_id;
         const newCatName = categories.find((c) => c.id === newCatId)?.name || p.category_name;
+        const mergedSpecs = dbUpdates.specs
+          ? (typeof p.specs === 'object' && !Array.isArray(p.specs) ? { ...(p.specs as Record<string, any>), ...dbUpdates.specs } : p.specs)
+          : p.specs;
+        const isFeaturedVal = updates.is_featured !== undefined ? Boolean(updates.is_featured) : p.is_featured;
+        const featuredAtVal = updates.is_featured !== undefined
+          ? (updates.is_featured ? (dbUpdates.featured_at || new Date().toISOString()) : undefined)
+          : p.featured_at;
         return {
           ...p,
           ...updates,
+          specs: mergedSpecs,
+          is_featured: isFeaturedVal,
+          featured_at: featuredAtVal,
           category_id: newCatId,
           category_name: newCatName,
         };
-      })
-    );
+      });
+      try {
+        localStorage.setItem(LOCAL_STORAGE_PRODUCTS, JSON.stringify(sanitizeProducts(updated)));
+      } catch {}
+      return updated;
+    });
+
+    // Invalidate and refetch catalog to ensure persistent 100% sync with Supabase
+    await refreshCatalog().catch(() => {});
+
     showToast('Product updated successfully', 'success');
     return true;
   };
@@ -2591,7 +2707,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       localStorage.setItem(LOCAL_STORAGE_OFFERS, JSON.stringify(updated));
       return updated;
     });
-    showToast(`Offer "${newOffer.title}" created successfully!`, 'success');
+    const toastMsg = newOffer.title?.trim()
+      ? `Offer "${newOffer.title}" created successfully!`
+      : 'Offer banner created successfully!';
+    showToast(toastMsg, 'success');
     return true;
   };
 

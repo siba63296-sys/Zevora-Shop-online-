@@ -899,12 +899,28 @@ export const ProductVariantDashboard: React.FC = () => {
                                   {prod.sku}
                                 </span>
                               )}
-                              {prod.is_featured && (
-                                <span className="text-[9px] font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded flex items-center gap-0.5">
-                                  <Star className="w-2.5 h-2.5 fill-current" />
-                                  Featured
-                                </span>
-                              )}
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const nextState = !prod.is_featured;
+                                  await updateProduct(prod.id, { is_featured: nextState });
+                                  showToast(
+                                    nextState
+                                      ? `"${prod.name}" marked as Favourite & Featured on Home Page!`
+                                      : `"${prod.name}" removed from Home Page Featured Deals.`,
+                                    nextState ? 'success' : 'info'
+                                  );
+                                }}
+                                className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md border transition-all cursor-pointer inline-flex items-center gap-1 ${
+                                  prod.is_featured
+                                    ? 'text-amber-800 bg-amber-50 border-amber-300 hover:bg-amber-100 shadow-2xs'
+                                    : 'text-slate-400 bg-slate-100 border-slate-200 hover:text-amber-600 hover:border-amber-300'
+                                }`}
+                                title={prod.is_featured ? 'Click to remove from Home Page Featured Deals' : 'Click to mark as Favourite / Featured on Home Page'}
+                              >
+                                <Star className={`w-2.5 h-2.5 ${prod.is_featured ? 'fill-amber-500 text-amber-500' : ''}`} />
+                                <span>{prod.is_featured ? 'Home Featured' : 'Feature'}</span>
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -1031,6 +1047,27 @@ export const ProductVariantDashboard: React.FC = () => {
                       {/* Actions */}
                       <td className="p-3.5 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const nextState = !prod.is_featured;
+                              await updateProduct(prod.id, { is_featured: nextState });
+                              showToast(
+                                nextState
+                                  ? `"${prod.name}" marked as Favourite & Featured on Home Page!`
+                                  : `"${prod.name}" removed from Home Page Featured Deals.`,
+                                nextState ? 'success' : 'info'
+                              );
+                            }}
+                            className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                              prod.is_featured
+                                ? 'text-amber-500 bg-amber-50 hover:bg-amber-100'
+                                : 'text-slate-400 hover:text-amber-500 hover:bg-slate-50'
+                            }`}
+                            title={prod.is_featured ? 'Remove from Home Page Featured Deals' : 'Mark as Favourite / Featured on Home Page'}
+                          >
+                            <Star className={`w-3.5 h-3.5 ${prod.is_featured ? 'fill-amber-500 text-amber-500' : ''}`} />
+                          </button>
                           <button
                             type="button"
                             onClick={() => openEditModal(prod)}

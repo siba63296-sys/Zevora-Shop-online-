@@ -163,13 +163,14 @@ export function isSizeInStock(product: Product, size: string, color?: string): b
 }
 
 // Get total stock for a specific color
-export function getColorStock(product: Product, color: string): number {
+export function getColorStock(product: Product, color?: string): number {
   if (!product.variants || product.variants.length === 0) {
     return product.stock_quantity;
   }
 
+  const safeColor = (color || '').trim().toLowerCase();
   const matching = product.variants.filter(
-    (v) => (v.color || '').toLowerCase() === color.toLowerCase()
+    (v) => (v.color || '').trim().toLowerCase() === safeColor
   );
 
   if (matching.length > 0) {
@@ -183,9 +184,11 @@ export function getColorStock(product: Product, color: string): number {
 export function getColorImages(product: Product, colorName?: string): string[] {
   if (!colorName) return product.images || [];
 
+  const safeColorName = (colorName || '').trim().toLowerCase();
+
   // Check color_variants
   const cv = product.color_variants?.find(
-    (c) => c.name.toLowerCase() === colorName.toLowerCase()
+    (c) => (c.name || '').trim().toLowerCase() === safeColorName
   );
   if (cv && cv.images && cv.images.length > 0) {
     return cv.images;
@@ -193,7 +196,7 @@ export function getColorImages(product: Product, colorName?: string): string[] {
 
   // Check variants for image list
   const varWithImg = product.variants?.find(
-    (v) => (v.color || '').toLowerCase() === colorName.toLowerCase() && v.images && v.images.length > 0
+    (v) => (v.color || '').trim().toLowerCase() === safeColorName && v.images && v.images.length > 0
   );
   if (varWithImg && varWithImg.images && varWithImg.images.length > 0) {
     return varWithImg.images;
