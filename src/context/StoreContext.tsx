@@ -38,6 +38,7 @@ import {
 } from '../lib/supabase';
 import { calculateDiscountedProduct, isOfferCurrentlyActive } from '../utils/pricing';
 import { isCouponCurrentlyActive, validateCouponForCart } from '../utils/coupons';
+import { PRESET_COLORS } from '../utils/variants';
 
 interface StoreContextType {
   // Navigation
@@ -341,33 +342,72 @@ const DEFAULT_REVIEWS: Record<string, ProductReview[]> = {
   ],
 };
 
-const getInitialPage = (): PageView => {
+const getInitialPageInfo = (): {
+  page: PageView;
+  productId?: string;
+  categoryId?: string;
+  searchQuery?: string;
+} => {
   if (typeof window !== 'undefined') {
     const search = window.location.search.toLowerCase();
+    const pathname = window.location.pathname;
+    const hash = window.location.hash.toLowerCase();
+
     if (search.includes('cf_order_id')) {
-      return 'checkout';
+      return { page: 'checkout' };
     }
     if (
       search.includes('view=admin') ||
       search.includes('page=admin') ||
       search.includes('admin=true') ||
-      search.includes('admin=1')
-    ) {
-      return 'admin';
-    }
-    const path = window.location.pathname.toLowerCase();
-    const hash = window.location.hash.toLowerCase();
-    if (
-      path === '/admin' ||
-      path.startsWith('/admin') ||
+      search.includes('admin=1') ||
+      pathname === '/admin' ||
+      pathname.startsWith('/admin') ||
       hash === '#admin' ||
       hash.startsWith('#admin')
     ) {
-      return 'admin';
+      return { page: 'admin' };
     }
+
+    // Check /product/{product-id} or /product-detail/{product-id}
+    const productMatch = pathname.match(/^\/(?:product|product-detail)\/([a-zA-Z0-9_-]+)/i);
+    if (productMatch && productMatch[1]) {
+      return { page: 'product_detail', productId: productMatch[1] };
+    }
+
+    // Also support query param: ?product={id} or ?productId={id}
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryProdId = urlParams.get('product') || urlParams.get('productId') || urlParams.get('id');
+    if (queryProdId) {
+      return { page: 'product_detail', productId: queryProdId };
+    }
+
+    // Check /category/{category-id}
+    const categoryMatch = pathname.match(/^\/category\/([a-zA-Z0-9_-]+)/i);
+    if (categoryMatch && categoryMatch[1]) {
+      return { page: 'category_products', categoryId: categoryMatch[1] };
+    }
+
+    if (pathname === '/categories' || pathname.startsWith('/categories')) return { page: 'categories' };
+    if (pathname === '/cart' || pathname.startsWith('/cart')) return { page: 'cart' };
+    if (pathname === '/checkout' || pathname.startsWith('/checkout')) return { page: 'checkout' };
+    if (pathname === '/wishlist' || pathname.startsWith('/wishlist')) return { page: 'wishlist' };
+    if (pathname === '/orders' || pathname.startsWith('/orders')) return { page: 'orders' };
+    if (pathname === '/search' || pathname.startsWith('/search')) {
+      const q = urlParams.get('q') || '';
+      return { page: 'search', searchQuery: q };
+    }
+    if (pathname === '/login' || pathname.startsWith('/login')) return { page: 'login' };
+    if (pathname === '/profile' || pathname.startsWith('/profile')) return { page: 'profile' };
+    if (pathname === '/help' || pathname.startsWith('/help')) return { page: 'help' };
+    if (pathname === '/settings' || pathname.startsWith('/settings')) return { page: 'settings' };
+    if (pathname === '/terms' || pathname.startsWith('/terms')) return { page: 'terms' };
+    if (pathname === '/privacy' || pathname.startsWith('/privacy')) return { page: 'privacy' };
   }
-  return 'home';
+  return { page: 'home' };
 };
+
+const getInitialPage = (): PageView => getInitialPageInfo().page;
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Theme & Dark Mode State
@@ -426,10 +466,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // Navigation State
-  const [currentPage, setCurrentPage] = useState<PageView>(getInitialPage);
-  const [selectedProductId, setSelectedProductId] = useState<string | null>('prod-iphone15');
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>('cat-mobiles');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const initialNavInfo = useMemo(() => getInitialPageInfo(), []);
+  const [currentPage, setCurrentPage] = useState<PageView>(initialNavInfo.page);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(initialNavInfo.productId || null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(initialNavInfo.categoryId || 'cat-mobiles');
+  const [searchQuery, setSearchQuery] = useState<string>(initialNavInfo.searchQuery || '');
 
   // Base Catalog State (Original database prices preserved untouched)
   const [baseProducts, setBaseProducts] = useState<Product[]>(() => {
@@ -1059,19 +1100,32 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
 
           // Parse colors
-          let parsedColors = Array.isArray(p.colors)
+          let rawColors = Array.isArray(p.colors)
             ? p.colors
             : (rawSpecs && typeof rawSpecs === 'object' && Array.isArray(rawSpecs.colors)
               ? rawSpecs.colors
               : (typeof p.colors === 'string' ? JSON.parse(p.colors || '[]') : []));
 
-          if (parsedColors.length === 0 && parsedVariants.length > 0) {
+          if (rawColors.length === 0 && parsedVariants.length > 0) {
             const uniqueColors = Array.from(new Set(parsedVariants.map((v) => v.color).filter(Boolean)));
-            parsedColors = uniqueColors.map((cName) => {
+            rawColors = uniqueColors.map((cName) => {
               const match = parsedVariants.find((v) => v.color === cName);
               return { name: cName as string, hex: match?.color_hex || '#0f172a' };
             });
           }
+
+          const parsedColors: ColorVariant[] = rawColors.map((c: any) => {
+            if (typeof c === 'string') {
+              const preset = PRESET_COLORS.find((pr) => pr.name.toLowerCase() === c.toLowerCase());
+              return { name: c, hex: preset?.hex || '#2563eb' };
+            }
+            if (c && typeof c === 'object') {
+              const name = c.name || c.color || 'Color';
+              const preset = PRESET_COLORS.find((pr) => pr.name.toLowerCase() === name.toLowerCase());
+              return { name, hex: c.hex || preset?.hex || '#2563eb' };
+            }
+            return { name: String(c), hex: '#2563eb' };
+          });
 
           // Parse sizes
           let parsedSizes = Array.isArray(p.sizes)
@@ -1400,22 +1454,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Synchronize route if user navigates via browser history or URL changes
   useEffect(() => {
     const handleUrlChange = () => {
-      const path = window.location.pathname.toLowerCase();
-      const hash = window.location.hash.toLowerCase();
-      const search = window.location.search.toLowerCase();
-      if (
-        path === '/admin' ||
-        path.startsWith('/admin') ||
-        hash === '#admin' ||
-        hash.startsWith('#admin') ||
-        search.includes('view=admin') ||
-        search.includes('page=admin') ||
-        search.includes('admin=true')
-      ) {
-        setCurrentPage('admin');
-      } else if (currentPage === 'admin' && path !== '/admin' && !hash.includes('admin') && !search.includes('admin')) {
-        setCurrentPage('home');
+      const info = getInitialPageInfo();
+      if (info.productId) {
+        setSelectedProductId(info.productId);
       }
+      if (info.categoryId) {
+        setSelectedCategoryId(info.categoryId);
+      }
+      if (info.searchQuery !== undefined) {
+        setSearchQuery(info.searchQuery);
+      }
+      setCurrentPage(info.page);
     };
 
     window.addEventListener('popstate', handleUrlChange);
@@ -1424,7 +1473,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       window.removeEventListener('popstate', handleUrlChange);
       window.removeEventListener('hashchange', handleUrlChange);
     };
-  }, [currentPage]);
+  }, []);
 
   // Navigation helper
   const navigateTo = (page: PageView, options?: { productId?: string; categoryId?: string; searchQuery?: string }) => {
@@ -1434,11 +1483,44 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setCurrentPage(page);
 
-    // Sync window history
+    // Sync window history with proper route
+    let targetUrl = '/';
     if (page === 'admin') {
-      window.history.pushState({}, '', '/admin');
+      targetUrl = '/admin';
+    } else if (page === 'product_detail' && options?.productId) {
+      targetUrl = `/product/${options.productId}`;
+    } else if (page === 'category_products' && options?.categoryId) {
+      targetUrl = `/category/${options.categoryId}`;
+    } else if (page === 'categories') {
+      targetUrl = '/categories';
+    } else if (page === 'cart') {
+      targetUrl = '/cart';
+    } else if (page === 'checkout') {
+      targetUrl = '/checkout';
+    } else if (page === 'wishlist') {
+      targetUrl = '/wishlist';
+    } else if (page === 'orders') {
+      targetUrl = '/orders';
+    } else if (page === 'search') {
+      targetUrl = options?.searchQuery ? `/search?q=${encodeURIComponent(options.searchQuery)}` : '/search';
+    } else if (page === 'login') {
+      targetUrl = '/login';
+    } else if (page === 'profile') {
+      targetUrl = '/profile';
+    } else if (page === 'help') {
+      targetUrl = '/help';
+    } else if (page === 'settings') {
+      targetUrl = '/settings';
+    } else if (page === 'terms') {
+      targetUrl = '/terms';
+    } else if (page === 'privacy') {
+      targetUrl = '/privacy';
     } else {
-      window.history.pushState({}, '', '/');
+      targetUrl = '/';
+    }
+
+    if (typeof window !== 'undefined' && window.location.pathname !== targetUrl) {
+      window.history.pushState({ page, productId: options?.productId, categoryId: options?.categoryId }, '', targetUrl);
     }
 
     // Scroll to top

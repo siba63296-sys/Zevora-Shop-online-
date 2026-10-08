@@ -24,11 +24,18 @@ export const SizeChartModal: React.FC<SizeChartModalProps> = ({
 }) => {
   const [unit, setUnit] = useState<'inches' | 'cm'>('inches');
 
-  // Determine chart to display: customChart -> girls if category contains 'girl' or 'kid' -> default adult apparel
+  // Determine chart to display: customChart -> adult if product is women's/men's/adult -> girls if category contains 'girl' or 'kid' -> default adult apparel
+  const isAdultApparel =
+    productName.toLowerCase().includes("women") ||
+    productName.toLowerCase().includes("woman") ||
+    productName.toLowerCase().includes("men") ||
+    productName.toLowerCase().includes("adult");
+
   const isGirlsOrKids =
-    (categoryName && (categoryName.toLowerCase().includes('girl') || categoryName.toLowerCase().includes('kid'))) ||
-    productName.toLowerCase().includes('girl') ||
-    productName.toLowerCase().includes('kid');
+    !isAdultApparel &&
+    ((categoryName && (categoryName.toLowerCase().includes('girl') || categoryName.toLowerCase().includes('kid'))) ||
+      productName.toLowerCase().includes('girl') ||
+      productName.toLowerCase().includes('kid'));
 
   const chart: SizeChart = customChart || (isGirlsOrKids ? GIRLS_DRESS_SIZE_CHART : ADULT_APPAREL_SIZE_CHART);
 

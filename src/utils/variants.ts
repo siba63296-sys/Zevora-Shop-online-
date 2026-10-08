@@ -21,7 +21,7 @@ export const PRESET_COLORS: ColorVariant[] = [
 ];
 
 // Standard Adult Apparel Sizes
-export const PRESET_ADULT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+export const PRESET_ADULT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL'];
 
 // Girls & Kids Age-Based Sizes
 export const PRESET_GIRLS_SIZES = [
@@ -51,6 +51,8 @@ export const ADULT_APPAREL_SIZE_CHART: SizeChart = {
     { size: 'XL', chest: '40 - 42', waist: '34 - 36', hips: '42 - 44', length: '42', shoulder: '16.0' },
     { size: 'XXL', chest: '42 - 44', waist: '36 - 38', hips: '44 - 46', length: '43', shoulder: '16.5' },
     { size: '3XL', chest: '44 - 46', waist: '38 - 40', hips: '46 - 48', length: '44', shoulder: '17.0' },
+    { size: '4XL', chest: '46 - 48', waist: '40 - 42', hips: '48 - 50', length: '45', shoulder: '17.5' },
+    { size: '5XL', chest: '48 - 50', waist: '42 - 44', hips: '50 - 52', length: '46', shoulder: '18.0' },
   ],
   guide_tips: [
     'Bust/Chest: Measure around the fullest part of your chest with tape parallel to the floor.',

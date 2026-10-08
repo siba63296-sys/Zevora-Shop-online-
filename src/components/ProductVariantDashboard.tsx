@@ -1547,7 +1547,7 @@ export const ProductVariantDashboard: React.FC = () => {
                     onClick={() => handleAddSizeBatch(PRESET_ADULT_SIZES)}
                     className="px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50/70 hover:bg-blue-100 text-blue-800 font-bold text-xs transition-colors cursor-pointer"
                   >
-                    + Add Standard Adult (XS, S, M, L, XL, XXL, 3XL)
+                    + Add Standard Adult (XS, S, M, L, XL, XXL, 3XL, 4XL, 5XL)
                   </button>
 
                   <button
@@ -1826,7 +1826,7 @@ export const ProductVariantDashboard: React.FC = () => {
                     <div>
                       <p className="text-xs leading-tight">Standard Adult Chart</p>
                       <span className="text-[10px] text-slate-400 font-normal">
-                        Bust, Waist, Hips, Length (XS - 3XL)
+                        Bust, Waist, Hips, Length (XS - 5XL)
                       </span>
                     </div>
                   </label>

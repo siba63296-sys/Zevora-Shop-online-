@@ -1307,6 +1307,47 @@ app.put('/api/products/:id', async (req: Request, res: Response) => {
   }
 });
 
+app.get('/api/products/:id', async (req: Request, res: Response) => {
+  if (!supabase) {
+    res.status(503).json({ success: false, error: 'Database client unavailable' });
+    return;
+  }
+
+  try {
+    const { id } = req.params;
+    const { data: product, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) {
+      res.status(400).json({ success: false, error: error.message });
+      return;
+    }
+
+    if (!product) {
+      res.status(404).json({ success: false, error: 'Product not found' });
+      return;
+    }
+
+    let variants: any[] = [];
+    try {
+      const { data: vData } = await supabase
+        .from('product_variants')
+        .select('*')
+        .eq('product_id', id);
+      if (vData && Array.isArray(vData)) {
+        variants = vData;
+      }
+    } catch {}
+
+    res.json({ success: true, product, variants });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message });
+  }
+});
+
 app.delete('/api/products/:id', async (req: Request, res: Response) => {
   if (!supabase) {
     res.status(503).json({ success: false, error: 'Database client unavailable' });

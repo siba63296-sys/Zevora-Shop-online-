@@ -668,5 +668,53 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
+export async function fetchProductByIdFromSupabase(productId: string): Promise<{ product: any; variants: any[] } | null> {
+  if (!productId) return null;
+
+  // 1. Try direct Supabase client
+  const supabase = getSupabase();
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .maybeSingle();
+
+      if (!error && data) {
+        let variants: any[] = [];
+        try {
+          const { data: vData } = await supabase
+            .from('product_variants')
+            .select('*')
+            .eq('product_id', productId);
+          if (vData && Array.isArray(vData)) {
+            variants = vData;
+          }
+        } catch {}
+
+        return { product: data, variants };
+      }
+    } catch (err) {
+      console.warn('Direct Supabase fetchProductById note:', err);
+    }
+  }
+
+  // 2. Fallback to API route /api/products/:id
+  try {
+    const res = await fetch(`/api/products/${productId}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && json.product) {
+        return { product: json.product, variants: json.variants || [] };
+      }
+    }
+  } catch (err) {
+    console.warn('API fetchProductById error:', err);
+  }
+
+  return null;
+}
+
 
 

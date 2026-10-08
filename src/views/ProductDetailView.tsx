@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Product } from '../types';
+import { Product, ColorVariant, ProductVariant } from '../types';
 import {
   ChevronLeft,
   Heart,
@@ -23,6 +23,7 @@ import {
   Ruler,
   Check,
   AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import { ProductReviews } from '../components/ProductReviews';
 import { SizeChartModal } from '../components/SizeChartModal';
@@ -32,11 +33,17 @@ import {
   getColorStock,
   getSizeStock,
   isSizeInStock,
+  PRESET_COLORS,
+  GIRLS_DRESS_SIZE_CHART,
+  ADULT_APPAREL_SIZE_CHART,
 } from '../utils/variants';
+import { resolveImageUrl } from '../utils/imageUrl';
+import { fetchProductByIdFromSupabase } from '../lib/supabase';
 
 export const ProductDetailView: React.FC = () => {
   const {
     products,
+    categories,
     selectedProductId,
     navigateTo,
     addToCart,
@@ -49,7 +56,199 @@ export const ProductDetailView: React.FC = () => {
     showToast,
   } = useStore();
 
-  const product = products.find((p) => p.id === selectedProductId) || products[0];
+  // 1. Determine target product ID: from context or directly from window.location.pathname
+  const urlProductId = typeof window !== 'undefined'
+    ? window.location.pathname.match(/^\/(?:product|product-detail)\/([a-zA-Z0-9_-]+)/i)?.[1]
+    : null;
+  const targetId = selectedProductId || urlProductId || null;
+
+  // 2. Local state for cached / fetched product, loading, and error
+  const cachedProduct = useMemo(() => {
+    if (!targetId) return null;
+    return products.find((p) => p.id === targetId) || null;
+  }, [products, targetId]);
+
+  const [remoteProduct, setRemoteProduct] = useState<Product | null>(cachedProduct);
+  const [isLoadingProduct, setIsLoadingProduct] = useState<boolean>(!cachedProduct && Boolean(targetId));
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Sync with cachedProduct if it changes or becomes available
+  useEffect(() => {
+    if (cachedProduct) {
+      setRemoteProduct(cachedProduct);
+      setIsLoadingProduct(false);
+      setFetchError(null);
+    }
+  }, [cachedProduct]);
+
+  // 3. Fetch product from Supabase using its UUID
+  useEffect(() => {
+    if (!targetId) {
+      setIsLoadingProduct(false);
+      setRemoteProduct(null);
+      return;
+    }
+
+    let isMounted = true;
+    const loadFromSupabase = async () => {
+      if (!cachedProduct) {
+        setIsLoadingProduct(true);
+      }
+      setFetchError(null);
+
+      try {
+        const result = await fetchProductByIdFromSupabase(targetId);
+        if (!isMounted) return;
+
+        if (result && result.product) {
+          const raw = result.product;
+          const rawSpecs = raw.specs;
+
+          // Format specs
+          let formattedSpecs: { label: string; value: string }[] = [];
+          if (Array.isArray(rawSpecs)) {
+            formattedSpecs = rawSpecs;
+          } else if (rawSpecs && typeof rawSpecs === 'object') {
+            if (Array.isArray(rawSpecs.items)) {
+              formattedSpecs = rawSpecs.items;
+            } else {
+              formattedSpecs = Object.entries(rawSpecs)
+                .filter(([k]) => !['variants', 'colors', 'sizes', 'size_chart', 'brand', 'sku', 'subcategory', 'color_variants'].includes(k))
+                .map(([label, value]) => ({
+                  label: label.charAt(0).toUpperCase() + label.slice(1).replace(/_/g, ' '),
+                  value: typeof value === 'object' ? JSON.stringify(value) : String(value),
+                }));
+            }
+          }
+
+          // Format variants from product_variants table or raw product
+          let parsedVariants: ProductVariant[] = [];
+          if (Array.isArray(result.variants) && result.variants.length > 0) {
+            parsedVariants = result.variants.map((v: any) => ({
+              id: v.id,
+              sku: v.sku || `${raw.sku || 'ZEV'}-${v.size || ''}`,
+              color: v.color || '',
+              color_hex: v.color_hex || '#0f172a',
+              size: v.size || '',
+              price: Number(v.price) || Number(raw.price) || 0,
+              original_price: Number(v.original_price ?? v.mrp) || Number(raw.original_price ?? raw.mrp ?? raw.price) || 0,
+              stock_quantity: Number(v.stock_quantity ?? v.stock ?? 0),
+              in_stock: Number(v.stock_quantity ?? v.stock ?? 0) > 0,
+              images: Array.isArray(v.images) ? v.images : [],
+            }));
+          } else if (Array.isArray(raw.variants)) {
+            parsedVariants = raw.variants;
+          } else if (rawSpecs && typeof rawSpecs === 'object' && Array.isArray(rawSpecs.variants)) {
+            parsedVariants = rawSpecs.variants;
+          }
+
+          // Format colors safely
+          let rawColors = Array.isArray(raw.colors)
+            ? raw.colors
+            : (rawSpecs && typeof rawSpecs === 'object' && Array.isArray(rawSpecs.colors)
+              ? rawSpecs.colors
+              : (typeof raw.colors === 'string' ? JSON.parse(raw.colors || '[]') : []));
+
+          if (rawColors.length === 0 && parsedVariants.length > 0) {
+            const uniqueColors = Array.from(new Set(parsedVariants.map((v) => v.color).filter(Boolean)));
+            rawColors = uniqueColors.map((cName) => {
+              const match = parsedVariants.find((v) => v.color === cName);
+              return { name: cName as string, hex: match?.color_hex || '#0f172a' };
+            });
+          }
+
+          const parsedColors: ColorVariant[] = rawColors.map((c: any) => {
+            if (typeof c === 'string') {
+              const preset = PRESET_COLORS.find((pr) => pr.name.toLowerCase() === c.toLowerCase());
+              return { name: c, hex: preset?.hex || '#2563eb' };
+            }
+            if (c && typeof c === 'object') {
+              const name = c.name || c.color || 'Color';
+              const preset = PRESET_COLORS.find((pr) => pr.name.toLowerCase() === name.toLowerCase());
+              return { name, hex: c.hex || preset?.hex || '#2563eb' };
+            }
+            return { name: String(c), hex: '#2563eb' };
+          });
+
+          // Format sizes
+          let parsedSizes = Array.isArray(raw.sizes)
+            ? raw.sizes
+            : (rawSpecs && typeof rawSpecs === 'object' && Array.isArray(rawSpecs.sizes)
+              ? rawSpecs.sizes
+              : (typeof raw.sizes === 'string' ? JSON.parse(raw.sizes || '[]') : []));
+
+          if (parsedSizes.length === 0 && parsedVariants.length > 0) {
+            parsedSizes = Array.from(new Set(parsedVariants.map((v) => v.size).filter(Boolean))) as string[];
+          }
+
+          const price = Number(raw.price) || 0;
+          const originalPrice = Number(raw.original_price ?? raw.mrp ?? raw.price) || price;
+          const stockQty = Number(raw.stock_quantity ?? raw.stock ?? 0);
+          const brand = raw.brand || (rawSpecs && typeof rawSpecs === 'object' ? rawSpecs.brand : 'Zevora');
+          const sku = raw.sku || (rawSpecs && typeof rawSpecs === 'object' ? rawSpecs.sku : undefined);
+
+          let parsedImages: string[] = [];
+          if (Array.isArray(raw.images)) {
+            parsedImages = raw.images;
+          } else if (typeof raw.images === 'string') {
+            try {
+              parsedImages = JSON.parse(raw.images);
+            } catch {
+              if (raw.images.trim()) parsedImages = [raw.images.trim()];
+            }
+          }
+
+          const categoryName = raw.category_name || (categories.find((c) => c.id === raw.category_id)?.name) || 'Girls Collection';
+
+          const formatted: Product = {
+            id: raw.id,
+            name: raw.name,
+            description: raw.description || '',
+            category_id: raw.category_id,
+            category_name: categoryName,
+            price,
+            original_price: originalPrice,
+            discount_percent: Number(raw.discount_percent) || (originalPrice > price ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0),
+            rating: Number(raw.rating) || 4.5,
+            review_count: Number(raw.review_count ?? raw.rating_count ?? 0),
+            stock_quantity: stockQty,
+            in_stock: raw.in_stock !== undefined ? Boolean(raw.in_stock) : stockQty > 0,
+            images: parsedImages,
+            specs: formattedSpecs,
+            colors: parsedColors,
+            sizes: parsedSizes,
+            brand: brand,
+            sku: sku,
+            variants: parsedVariants,
+            size_chart: raw.size_chart || (rawSpecs && typeof rawSpecs === 'object' ? rawSpecs.size_chart : undefined),
+            is_featured: Boolean(raw.is_featured),
+            created_at: raw.created_at,
+          };
+
+          setRemoteProduct(formatted);
+          setIsLoadingProduct(false);
+        } else if (!cachedProduct) {
+          setFetchError('Product not found in our catalog.');
+          setIsLoadingProduct(false);
+        }
+      } catch (err: any) {
+        if (!isMounted) return;
+        if (!cachedProduct) {
+          setFetchError(err?.message || 'Failed to load product details.');
+          setIsLoadingProduct(false);
+        }
+      }
+    };
+
+    loadFromSupabase();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [targetId, categories]);
+
+  const product = remoteProduct || cachedProduct;
+
   const isCompared = product ? isInComparison(product.id) : false;
 
   const productReviews = product ? getProductReviews(product.id) : [];
@@ -58,22 +257,40 @@ export const ProductDetailView: React.FC = () => {
     ? Number((productReviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount).toFixed(1))
     : (product?.rating || 4.5);
 
+  // Normalize colors defensively for UI rendering
+  const normalizedColors = useMemo<ColorVariant[]>(() => {
+    if (!product?.colors) return [];
+    return product.colors.map((c: any) => {
+      if (typeof c === 'string') {
+        const preset = PRESET_COLORS.find((pr) => pr.name.toLowerCase() === c.toLowerCase());
+        return { name: c, hex: preset?.hex || '#2563eb' };
+      }
+      if (c && typeof c === 'object') {
+        const name = c.name || c.color || 'Color';
+        const preset = PRESET_COLORS.find((pr) => pr.name.toLowerCase() === name.toLowerCase());
+        return { name, hex: c.hex || preset?.hex || '#2563eb' };
+      }
+      return { name: String(c), hex: '#2563eb' };
+    });
+  }, [product?.colors]);
+
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [selectedColor, setSelectedColor] = useState(product?.colors?.[0]?.name || '');
+  const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState('');
   const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
   const [sizeErrorPrompt, setSizeErrorPrompt] = useState(false);
 
-  // Sync state if selected product changes
+  // Sync initial color and reset selectors on product change
   useEffect(() => {
     if (product) {
-      setSelectedColor(product.colors?.[0]?.name || '');
+      const defaultColor = normalizedColors[0]?.name || '';
+      setSelectedColor(defaultColor);
       setSelectedSize('');
       setActiveImageIndex(0);
       setSizeErrorPrompt(false);
     }
-  }, [product?.id]);
+  }, [product?.id, normalizedColors.length]);
 
   // Gallery interactive zoom & fullscreen states
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
@@ -83,17 +300,21 @@ export const ProductDetailView: React.FC = () => {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
-  // Dynamic image list based on selected color
+  // Dynamic image list based on selected color with full resolveImageUrl applied
   const colorImages = useMemo(() => {
     if (!product) return [];
     return getColorImages(product, selectedColor);
   }, [product, selectedColor]);
 
-  const imageList = (colorImages && colorImages.length > 0)
-    ? colorImages
-    : ((product?.images && product.images.length > 0)
-      ? product.images
-      : ['https://placehold.co/600x600/png?text=Product']);
+  const rawImageList = useMemo(() => {
+    if (colorImages && colorImages.length > 0) return colorImages;
+    if (product?.images && product.images.length > 0) return product.images;
+    return ['https://placehold.co/600x600/png?text=Product'];
+  }, [colorImages, product?.images]);
+
+  const imageList = useMemo(() => {
+    return rawImageList.map((img) => resolveImageUrl(img));
+  }, [rawImageList]);
 
   // Reset active image index if out of range when color changes
   useEffect(() => {
@@ -133,19 +354,57 @@ export const ProductDetailView: React.FC = () => {
   const hasSizes = Boolean(product?.sizes && product.sizes.length > 0);
   const isAvailableToBuy = Boolean(product?.in_stock && currentStock > 0);
 
-  if (!product) {
+  // 1. Loading State
+  if (isLoadingProduct && !product) {
     return (
-      <div className="text-center py-20">
-        <p className="text-slate-500">Product not found.</p>
+      <div className="min-h-[50vh] flex flex-col items-center justify-center py-20 px-4 space-y-4 text-center">
+        <Loader2 className="w-10 h-10 animate-spin text-blue-600 dark:text-blue-400" />
+        <div className="space-y-1">
+          <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
+            Loading product details...
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Fetching product information from Supabase
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Missing or Not Found Error State
+  if (!product || (!targetId && !isLoadingProduct)) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 max-w-md mx-auto">
+        <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-500 flex items-center justify-center mx-auto border border-rose-200 dark:border-rose-900">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">
+            Product Not Found
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+            {fetchError || "The product you requested does not exist or may have been removed."}
+          </p>
+        </div>
         <button
+          type="button"
           onClick={() => navigateTo('home')}
-          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm"
+          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs cursor-pointer transition-all"
         >
-          Return Home
+          Return to Catalog
         </button>
       </div>
     );
   }
+
+  // Navigation handlers
+  const handleBackNavigation = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      window.history.back();
+    } else {
+      navigateTo('home');
+    }
+  };
 
   // Navigation handlers
   const handlePrevImage = () => {
@@ -258,8 +517,10 @@ export const ProductDetailView: React.FC = () => {
       {/* Top Header Bar */}
       <div className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-800">
         <button
-          onClick={() => navigateTo('home')}
-          className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
+          type="button"
+          onClick={handleBackNavigation}
+          className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+          aria-label="Back to catalog"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -427,9 +688,19 @@ export const ProductDetailView: React.FC = () => {
         {/* Right Column: Contiguous Purchase Module & Details */}
         <div className="space-y-5">
           <div>
-            <span className="text-xs uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400">
-              {product.category_name || 'Electronics'}
-            </span>
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="text-xs uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400">
+                {product.category_name || 'Girls Collection'}
+              </span>
+              {product.brand && (
+                <>
+                  <span className="text-slate-300 dark:text-slate-700">•</span>
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                    Brand: <strong className="text-slate-800 dark:text-slate-200">{product.brand}</strong>
+                  </span>
+                </>
+              )}
+            </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 leading-snug">
               {product.name}
             </h1>
@@ -508,7 +779,7 @@ export const ProductDetailView: React.FC = () => {
           )}
 
           {/* Color Selector */}
-          {product.colors && product.colors.length > 0 && (
+          {normalizedColors && normalizedColors.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -528,10 +799,10 @@ export const ProductDetailView: React.FC = () => {
               </div>
 
               <div className="flex flex-wrap items-center gap-2.5">
-                {product.colors.map((c) => {
+                {normalizedColors.map((c) => {
                   const cStock = getColorStock(product, c.name);
-                  const isOut = cStock <= 0;
-                  const isSel = selectedColor.toLowerCase() === c.name.toLowerCase();
+                  const isOut = cStock <= 0 && Boolean(product.variants && product.variants.length > 0);
+                  const isSel = (selectedColor || '').toLowerCase() === (c.name || '').toLowerCase();
 
                   return (
                     <button
@@ -982,7 +1253,13 @@ export const ProductDetailView: React.FC = () => {
         onClose={() => setIsSizeChartOpen(false)}
         productName={product.name}
         categoryName={product.category_name}
-        customChart={product.size_chart}
+        customChart={
+          product.size_chart ||
+          (product.name.toLowerCase().includes('girl') ||
+          (product.category_name && product.category_name.toLowerCase().includes('girl'))
+            ? GIRLS_DRESS_SIZE_CHART
+            : ADULT_APPAREL_SIZE_CHART)
+        }
         selectedSize={selectedSize}
         onSelectSize={(sz) => {
           setSelectedSize(sz);
