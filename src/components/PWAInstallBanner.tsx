@@ -25,8 +25,11 @@ export const PWAInstallBanner: React.FC = () => {
 
   const handleInstall = async () => {
     setIsInstalling(true);
-    await install();
-    setIsInstalling(false);
+    try {
+      await install();
+    } finally {
+      setIsInstalling(false);
+    }
   };
 
   if (!isInstallable || isInstalled || isDismissed) {
