@@ -4,6 +4,7 @@ import { Product, Category, OrderStatus, Order, Offer, Coupon, StoreSettings } f
 import { uploadProductImageToSupabase, uploadBannerImageToSupabase } from '../lib/supabase';
 import { generateSupabaseDemoSeedSql } from '../data/supabaseSeedSql';
 import { ProductVariantDashboard } from '../components/ProductVariantDashboard';
+import { MultiCategorySelector } from '../components/MultiCategorySelector';
 import {
   ShieldCheck,
   Package,
@@ -102,6 +103,7 @@ export const AdminView: React.FC = () => {
     name: '',
     description: '',
     category_id: categories[0]?.id || '',
+    category_ids: (categories[0]?.id ? [categories[0].id] : []) as string[],
     price: 0,
     original_price: 0,
     discount_percent: 0,
@@ -276,8 +278,12 @@ export const AdminView: React.FC = () => {
   // Handle Product Save
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    const targetCatId = productForm.category_id || categories[0]?.id || '';
+    const targetCatIds = (productForm.category_ids && productForm.category_ids.length > 0)
+      ? productForm.category_ids
+      : (productForm.category_id ? [productForm.category_id] : (categories[0]?.id ? [categories[0].id] : []));
+    const targetCatId = targetCatIds[0] || categories[0]?.id || '';
     const cat = categories.find((c) => c.id === targetCatId);
+    const catNames = targetCatIds.map((cid) => categories.find((c) => c.id === cid || c.slug === cid)?.name || cid);
     const finalImages = (productForm.images && productForm.images.length > 0)
       ? productForm.images
       : (productForm.image_url ? [productForm.image_url] : ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&q=80']);
@@ -287,7 +293,9 @@ export const AdminView: React.FC = () => {
         name: productForm.name,
         description: productForm.description,
         category_id: targetCatId,
+        category_ids: targetCatIds,
         category_name: cat?.name || 'General',
+        category_names: catNames,
         price: Number(productForm.price),
         original_price: Number(productForm.original_price || productForm.price),
         discount_percent: Number(productForm.discount_percent),
@@ -302,7 +310,9 @@ export const AdminView: React.FC = () => {
         name: productForm.name,
         description: productForm.description,
         category_id: targetCatId,
+        category_ids: targetCatIds,
         category_name: cat?.name || 'General',
+        category_names: catNames,
         price: Number(productForm.price),
         original_price: Number(productForm.original_price || productForm.price),
         discount_percent: Number(productForm.discount_percent),
@@ -326,6 +336,7 @@ export const AdminView: React.FC = () => {
       name: '',
       description: '',
       category_id: categories[0]?.id || '',
+      category_ids: categories[0]?.id ? [categories[0].id] : [],
       price: 0,
       original_price: 0,
       discount_percent: 0,
@@ -348,10 +359,15 @@ export const AdminView: React.FC = () => {
       ? [...prod.images]
       : (prod.images?.[0] ? [prod.images[0]] : []);
 
+    const initialCatIds = Array.isArray(prod.category_ids) && prod.category_ids.length > 0
+      ? prod.category_ids
+      : (prod.category_id ? [prod.category_id] : (categories[0]?.id ? [categories[0].id] : []));
+
     setProductForm({
       name: prod.name,
       description: prod.description,
       category_id: prod.category_id,
+      category_ids: initialCatIds,
       price: prod.price,
       original_price: prod.original_price,
       discount_percent: prod.discount_percent,
@@ -749,7 +765,9 @@ export const AdminView: React.FC = () => {
       (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesCategory =
-      productCategoryFilter === 'all' || p.category_id === productCategoryFilter;
+      productCategoryFilter === 'all' ||
+      p.category_id === productCategoryFilter ||
+      (Array.isArray(p.category_ids) && p.category_ids.includes(productCategoryFilter));
 
     const matchesStock =
       productStockFilter === 'all' ||
@@ -1195,9 +1213,22 @@ export const AdminView: React.FC = () => {
                           </div>
                         </td>
                         <td className="py-3 px-4 text-slate-600">
-                          <span className="bg-slate-100 px-2 py-0.5 rounded-md text-[11px] font-medium text-slate-700">
-                            {prod.category_name || categories.find((c) => c.id === prod.category_id)?.name || 'General'}
-                          </span>
+                          <div className="flex flex-wrap gap-1 max-w-xs">
+                            {((Array.isArray(prod.category_ids) && prod.category_ids.length > 0)
+                              ? prod.category_ids
+                              : (prod.category_id ? [prod.category_id] : [])
+                            ).map((cid) => {
+                              const cObj = categories.find((c) => c.id === cid || c.slug === cid);
+                              return (
+                                <span
+                                  key={cid}
+                                  className="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-2xs"
+                                >
+                                  {cObj?.name || cid}
+                                </span>
+                              );
+                            })}
+                          </div>
                         </td>
                         <td className="py-3 px-4">
                           <div className="font-bold text-slate-900 tabular-nums">
@@ -2455,18 +2486,20 @@ export const AdminView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Category</label>
-                <select
-                  value={productForm.category_id}
-                  onChange={(e) => setProductForm({ ...productForm, category_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white"
-                >
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                <MultiCategorySelector
+                  categories={categories}
+                  selectedCategoryIds={productForm.category_ids && productForm.category_ids.length > 0 ? productForm.category_ids : (productForm.category_id ? [productForm.category_id] : [])}
+                  onChange={(ids) =>
+                    setProductForm({
+                      ...productForm,
+                      category_ids: ids,
+                      category_id: ids[0] || '',
+                    })
+                  }
+                  label="Category (Multi-Select)"
+                  required
+                  helperText="Assign to multiple categories (e.g. Women Kurtis, Ethnic Wear, Festive Collection, Best Sellers)."
+                />
               </div>
 
               <div className="grid grid-cols-3 gap-3">

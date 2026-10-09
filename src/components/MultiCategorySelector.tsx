@@ -43,34 +43,50 @@ export const MultiCategorySelector: React.FC<MultiCategorySelectorProps> = ({
     return categories.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
-        c.slug.toLowerCase().includes(q) ||
+        (c.slug && c.slug.toLowerCase().includes(q)) ||
         (c.description && c.description.toLowerCase().includes(q))
     );
   }, [categories, searchQuery]);
 
-  // Selected category objects
+  // Selected category objects, resolving by both ID and slug
   const selectedCategories = useMemo(() => {
-    return selectedCategoryIds
-      .map((id) => categories.find((c) => c.id === id || c.slug === id))
-      .filter((c): c is Category => Boolean(c));
+    const seen = new Set<string>();
+    const list: Category[] = [];
+
+    for (const rawId of selectedCategoryIds) {
+      if (!rawId) continue;
+      const cat = categories.find((c) => c.id === rawId || c.slug === rawId);
+      if (cat && !seen.has(cat.id)) {
+        seen.add(cat.id);
+        list.push(cat);
+      }
+    }
+    return list;
   }, [categories, selectedCategoryIds]);
 
-  const handleToggle = (categoryId: string) => {
+  const isCategorySelected = (cat: Category): boolean => {
+    return selectedCategoryIds.includes(cat.id) || (cat.slug ? selectedCategoryIds.includes(cat.slug) : false);
+  };
+
+  const handleToggle = (cat: Category) => {
     if (disabled) return;
-    const isSelected = selectedCategoryIds.includes(categoryId);
+    const isSelected = isCategorySelected(cat);
     let next: string[];
+
     if (isSelected) {
-      next = selectedCategoryIds.filter((id) => id !== categoryId);
+      // Remove both ID and slug matches
+      next = selectedCategoryIds.filter((id) => id !== cat.id && id !== cat.slug);
     } else {
-      next = [...selectedCategoryIds, categoryId];
+      // Add primary canonical ID
+      next = Array.from(new Set([...selectedCategoryIds, cat.id]));
     }
     onChange(next);
   };
 
-  const handleRemove = (e: React.MouseEvent, categoryId: string) => {
+  const handleRemove = (e: React.MouseEvent, cat: Category) => {
     e.stopPropagation();
     if (disabled) return;
-    onChange(selectedCategoryIds.filter((id) => id !== categoryId));
+    onChange(selectedCategoryIds.filter((id) => id !== cat.id && id !== cat.slug));
   };
 
   const handleSelectAll = (e: React.MouseEvent) => {
@@ -89,41 +105,41 @@ export const MultiCategorySelector: React.FC<MultiCategorySelectorProps> = ({
   return (
     <div className="space-y-1.5" ref={containerRef}>
       <div className="flex items-center justify-between">
-        <label className="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
-          <Layers className="w-3.5 h-3.5 text-blue-600" />
+        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+          <Layers className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
           <span>{label}</span>
           {required && <span className="text-rose-500">*</span>}
         </label>
-        <span className="text-[11px] font-semibold text-slate-500">
-          {selectedCategoryIds.length} of {categories.length} selected
+        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+          {selectedCategories.length} of {categories.length} selected
         </span>
       </div>
 
       {/* Primary Input Container with Removable Tags */}
       <div
         onClick={() => !disabled && setIsOpen((prev) => !prev)}
-        className={`w-full min-h-[42px] p-2 bg-white border rounded-xl text-xs transition-all cursor-pointer flex flex-wrap items-center gap-1.5 ${
+        className={`w-full min-h-[42px] p-2 bg-white dark:bg-slate-900 border rounded-xl text-xs transition-all cursor-pointer flex flex-wrap items-center gap-1.5 ${
           isOpen
             ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
-            : 'border-slate-200 hover:border-slate-300'
-        } ${disabled ? 'opacity-60 cursor-not-allowed bg-slate-50' : ''}`}
+            : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+        } ${disabled ? 'opacity-60 cursor-not-allowed bg-slate-50 dark:bg-slate-800' : ''}`}
       >
         {selectedCategories.length === 0 ? (
-          <span className="text-slate-400 font-medium py-1 px-1 flex items-center gap-1.5">
+          <span className="text-slate-400 dark:text-slate-500 font-medium py-1 px-1 flex items-center gap-1.5">
             <Tag className="w-3.5 h-3.5 text-slate-400" />
-            <span>Select one or more categories...</span>
+            <span>Select multiple categories (e.g. Women Kurtis, Ethnic Wear, Best Sellers)...</span>
           </span>
         ) : (
           selectedCategories.map((cat) => (
             <span
               key={cat.id}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 font-bold text-[11px] shadow-2xs group animate-fadeIn"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/70 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 font-bold text-[11px] shadow-2xs group animate-in fade-in duration-100"
             >
               <span>{cat.name}</span>
               <button
                 type="button"
-                onClick={(e) => handleRemove(e, cat.id)}
-                className="p-0.5 hover:bg-blue-200/60 rounded text-blue-500 hover:text-blue-800 transition-colors cursor-pointer"
+                onClick={(e) => handleRemove(e, cat)}
+                className="p-0.5 hover:bg-blue-200/60 dark:hover:bg-blue-800/60 rounded text-blue-500 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors cursor-pointer"
                 title={`Remove ${cat.name}`}
                 aria-label={`Remove ${cat.name}`}
               >
@@ -140,14 +156,14 @@ export const MultiCategorySelector: React.FC<MultiCategorySelectorProps> = ({
 
       {/* Helper text or validation hint */}
       {helperText ? (
-        <p className="text-[10px] text-slate-400">{helperText}</p>
+        <p className="text-[10px] text-slate-400 dark:text-slate-500">{helperText}</p>
       ) : required && selectedCategoryIds.length === 0 ? (
-        <p className="text-[10px] text-amber-600 font-medium">Please assign at least one category.</p>
+        <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Please assign at least one category.</p>
       ) : null}
 
       {/* Dropdown Options & Checkbox List */}
       {isOpen && (
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-xl p-3 space-y-2.5 z-50 transition-all animate-fadeIn">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-3 space-y-2.5 z-50 transition-all animate-in fade-in duration-150">
           {/* Header controls: Search & Quick Actions (Select All, Clear All) */}
           <div className="space-y-2">
             <div className="relative">
@@ -156,8 +172,8 @@ export const MultiCategorySelector: React.FC<MultiCategorySelectorProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search categories (e.g. Kurtis, Ethnic, Fashion)..."
-                className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+                placeholder="Search categories (e.g. Kurtis, Ethnic, Festive)..."
+                className="w-full pl-8 pr-8 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
                 onClick={(e) => e.stopPropagation()}
               />
               {searchQuery && (
@@ -172,23 +188,23 @@ export const MultiCategorySelector: React.FC<MultiCategorySelectorProps> = ({
             </div>
 
             <div className="flex items-center justify-between pt-0.5 px-0.5">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Available Categories
               </span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handleSelectAll}
-                  className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <CheckSquare className="w-3 h-3" />
                   <span>Select All</span>
                 </button>
-                <span className="text-slate-300">|</span>
+                <span className="text-slate-300 dark:text-slate-700">|</span>
                 <button
                   type="button"
                   onClick={handleClearAll}
-                  className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:text-rose-800 hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <Square className="w-3 h-3" />
                   <span>Clear All</span>
@@ -197,8 +213,8 @@ export const MultiCategorySelector: React.FC<MultiCategorySelectorProps> = ({
             </div>
           </div>
 
-          {/* Categories List with Checkboxes */}
-          <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 pr-1 space-y-0.5">
+          {/* Categories List with Functional Checkboxes */}
+          <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 pr-1 space-y-0.5">
             {filteredCategories.length === 0 ? (
               <div className="py-6 text-center text-slate-400">
                 <p className="text-xs font-medium">No matching categories found</p>
@@ -206,54 +222,53 @@ export const MultiCategorySelector: React.FC<MultiCategorySelectorProps> = ({
               </div>
             ) : (
               filteredCategories.map((cat) => {
-                const isSelected = selectedCategoryIds.includes(cat.id) || selectedCategoryIds.includes(cat.slug);
+                const isSelected = isCategorySelected(cat);
                 return (
-                  <label
+                  <div
                     key={cat.id}
+                    onClick={() => handleToggle(cat)}
                     className={`flex items-center justify-between p-2 rounded-xl transition-colors cursor-pointer select-none ${
                       isSelected
-                        ? 'bg-blue-50/70 text-blue-900 font-bold'
-                        : 'hover:bg-slate-50 text-slate-700 font-medium'
+                        ? 'bg-blue-50/80 dark:bg-blue-950/60 text-blue-950 dark:text-blue-200 font-bold'
+                        : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300 font-medium'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div
-                        className={`w-4 h-4 rounded-md flex items-center justify-center transition-colors border ${
-                          isSelected
-                            ? 'bg-blue-600 border-blue-600 text-white shadow-2xs'
-                            : 'border-slate-300 bg-white hover:border-slate-400'
-                        }`}
-                      >
-                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                      </div>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggle(cat)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-700 cursor-pointer"
+                      />
                       <div className="truncate">
                         <span className="text-xs block truncate">{cat.name}</span>
                         {cat.description && (
-                          <span className="text-[10px] text-slate-400 block truncate font-normal">
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 block truncate font-normal">
                             {cat.description}
                           </span>
                         )}
                       </div>
                     </div>
 
-                    <span className="text-[10px] text-slate-400 font-mono shrink-0 ml-2">
-                      {cat.slug}
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono shrink-0 ml-2">
+                      {cat.slug || cat.id.slice(0, 8)}
                     </span>
-                  </label>
+                  </div>
                 );
               })
             )}
           </div>
 
           {/* Footer with done button */}
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-[11px] text-slate-500">
-              Assigned to {selectedCategoryIds.length} categories
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+              Assigned to {selectedCategories.length} categories
             </span>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 rounded-lg text-xs font-bold transition-colors cursor-pointer"
             >
               Done
             </button>

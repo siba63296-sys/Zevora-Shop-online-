@@ -12,6 +12,7 @@ import {
   generateVariantGrid,
 } from '../utils/variants';
 import { SizeChartModal } from './SizeChartModal';
+import { MultiCategorySelector } from './MultiCategorySelector';
 import {
   Plus,
   Edit2,
@@ -70,7 +71,9 @@ export const ProductVariantDashboard: React.FC = () => {
   // Form State
   const [formName, setFormName] = useState('');
   const [formBrand, setFormBrand] = useState('Zevora');
-  const [formCategoryId, setFormCategoryId] = useState(categories[0]?.id || '');
+  const [formCategoryIds, setFormCategoryIds] = useState<string[]>(() =>
+    categories[0]?.id ? [categories[0].id] : []
+  );
   const [formSubcategory, setFormSubcategory] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formPrice, setFormPrice] = useState(0);
@@ -132,9 +135,17 @@ export const ProductVariantDashboard: React.FC = () => {
         }
       }
 
-      // Category filter
-      if (selectedCategory !== 'all' && prod.category_id !== selectedCategory) {
-        return false;
+      // Category filter (support multiple categories per product)
+      if (selectedCategory !== 'all') {
+        const productCatIds = [
+          prod.category_id,
+          ...(Array.isArray(prod.category_ids) ? prod.category_ids : []),
+        ];
+        const catObj = categories.find((c) => c.id === selectedCategory || c.slug === selectedCategory);
+        const targetSet = new Set([selectedCategory, catObj?.id, catObj?.slug].filter(Boolean));
+        if (!productCatIds.some((cid) => targetSet.has(cid))) {
+          return false;
+        }
       }
 
       // Brand filter
@@ -203,7 +214,7 @@ export const ProductVariantDashboard: React.FC = () => {
     setEditingProductId(null);
     setFormName('');
     setFormBrand('Zevora');
-    setFormCategoryId(categories[0]?.id || '');
+    setFormCategoryIds(categories[0]?.id ? [categories[0].id] : []);
     setFormSubcategory('');
     setFormDescription('');
     setFormPrice(0);
@@ -231,7 +242,10 @@ export const ProductVariantDashboard: React.FC = () => {
     setEditingProductId(prod.id);
     setFormName(prod.name);
     setFormBrand(prod.brand || 'Zevora');
-    setFormCategoryId(prod.category_id);
+    const initialCatIds = Array.isArray(prod.category_ids) && prod.category_ids.length > 0
+      ? prod.category_ids
+      : (prod.category_id ? [prod.category_id] : (categories[0]?.id ? [categories[0].id] : []));
+    setFormCategoryIds(initialCatIds);
     setFormSubcategory(prod.subcategory || '');
     setFormDescription(prod.description || '');
     setFormPrice(prod.price);
@@ -512,10 +526,21 @@ export const ProductVariantDashboard: React.FC = () => {
       calculatedStock = formVariants.reduce((sum, v) => sum + (Number(v.stock_quantity) || 0), 0);
     }
 
+    if (formCategoryIds.length === 0) {
+      setUploadError('Please select at least one category for this product.');
+      return;
+    }
+
+    const primaryCatId = formCategoryIds[0] || categories[0]?.id || '';
+    const catNames = formCategoryIds.map((cid) => categories.find((c) => c.id === cid || c.slug === cid)?.name || cid);
+
     const payload: Partial<Product> = {
       name: formName.trim(),
       brand: formBrand.trim(),
-      category_id: formCategoryId,
+      category_id: primaryCatId,
+      category_ids: formCategoryIds,
+      category_name: categories.find((c) => c.id === primaryCatId || c.slug === primaryCatId)?.name || 'General',
+      category_names: catNames,
       subcategory: formSubcategory.trim(),
       description: formDescription.trim(),
       price: Number(formPrice) || 0,
@@ -928,9 +953,22 @@ export const ProductVariantDashboard: React.FC = () => {
 
                       {/* Category & Brand */}
                       <td className="p-3.5">
-                        <p className="font-bold text-slate-800">
-                          {prod.category_name || 'General'}
-                        </p>
+                        <div className="flex flex-wrap gap-1 mb-1 max-w-xs">
+                          {((Array.isArray(prod.category_ids) && prod.category_ids.length > 0)
+                            ? prod.category_ids
+                            : (prod.category_id ? [prod.category_id] : [])
+                          ).map((cid) => {
+                            const cObj = categories.find((c) => c.id === cid || c.slug === cid);
+                            return (
+                              <span
+                                key={cid}
+                                className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs"
+                              >
+                                {cObj?.name || cid}
+                              </span>
+                            );
+                          })}
+                        </div>
                         <p className="text-[11px] text-slate-400">
                           Brand: <span className="text-slate-600 font-medium">{prod.brand || 'Zevora'}</span>
                           {prod.subcategory ? ` • ${prod.subcategory}` : ''}
@@ -1163,19 +1201,15 @@ export const ProductVariantDashboard: React.FC = () => {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Category *</label>
-                    <select
-                      value={formCategoryId}
-                      onChange={(e) => setFormCategoryId(e.target.value)}
-                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
-                    >
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="sm:col-span-2">
+                    <MultiCategorySelector
+                      categories={categories}
+                      selectedCategoryIds={formCategoryIds}
+                      onChange={setFormCategoryIds}
+                      label="Assigned Categories (Multi-Select)"
+                      required
+                      helperText="Assign this product to one or multiple categories (e.g. Women Kurtis, Ethnic Wear, Festive Collection, Best Sellers). The product will appear in all selected categories."
+                    />
                   </div>
 
                   <div>
