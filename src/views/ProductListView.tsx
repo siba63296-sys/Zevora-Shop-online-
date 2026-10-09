@@ -58,8 +58,18 @@ export const ProductListView: React.FC = () => {
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       // Category match
-      if (localCategoryId && p.category_id !== localCategoryId) {
-        return false;
+      if (localCategoryId) {
+        const catObj = categories.find((c) => c.id === localCategoryId || c.slug === localCategoryId);
+        const targetIds = new Set([localCategoryId, catObj?.id, catObj?.slug].filter(Boolean));
+        const productCatIds = [
+          p.category_id,
+          ...(Array.isArray(p.category_ids) ? p.category_ids : []),
+        ].filter(Boolean);
+
+        const matches = productCatIds.some((cid) => targetIds.has(cid));
+        if (!matches) {
+          return false;
+        }
       }
       // In-stock filter
       if (inStockOnly && (!p.in_stock || p.stock_quantity <= 0)) {
@@ -67,7 +77,7 @@ export const ProductListView: React.FC = () => {
       }
       return true;
     });
-  }, [products, localCategoryId, inStockOnly]);
+  }, [products, localCategoryId, inStockOnly, categories]);
 
   // Sort logic
   const sortedProducts = useMemo(() => {

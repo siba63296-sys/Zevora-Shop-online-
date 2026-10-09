@@ -1,7 +1,8 @@
 import express from 'express';
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
@@ -1151,6 +1152,73 @@ app.post('/api/upload-product-image', async (req: Request, res: Response) => {
 });
 
 // 8. Products Endpoints (Using exact Supabase PostgreSQL schema with Service Role)
+async function resolveCategoryIds(catIds: unknown, primaryCatId?: unknown): Promise<string[]> {
+  const result: string[] = [];
+  const rawList: string[] = Array.isArray(catIds)
+    ? catIds.map(String)
+    : (primaryCatId ? [String(primaryCatId)] : []);
+
+  if (rawList.length === 0 || !supabase) return result;
+
+  try {
+    const { data: catRows } = await supabase.from('categories').select('id, slug, name');
+    const allCats = catRows || [];
+
+    for (const item of rawList) {
+      if (!item) continue;
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item)) {
+        result.push(item);
+      } else {
+        const cleanSlug = item.toLowerCase().replace(/^cat-/, '');
+        const matched = allCats.find(
+          (c: any) =>
+            c.slug === cleanSlug ||
+            c.slug === item ||
+            c.id === item ||
+            c.name.toLowerCase() === item.toLowerCase()
+        );
+        if (matched) {
+          result.push(matched.id);
+        }
+      }
+    }
+  } catch {}
+
+  return Array.from(new Set(result));
+}
+
+async function syncProductCategoriesTable(productId: string, categoryIds: string[]): Promise<void> {
+  if (!supabase || !productId || categoryIds.length === 0) return;
+  try {
+    await supabase.from('product_categories').delete().eq('product_id', productId);
+    const rows = categoryIds.map((cid) => ({
+      product_id: productId,
+      category_id: cid,
+    }));
+    await supabase.from('product_categories').insert(rows);
+  } catch (err: any) {
+    // If table doesn't exist, ignore safely
+  }
+}
+
+async function getProductCategoriesMap(): Promise<Map<string, string[]>> {
+  const map = new Map<string, string[]>();
+  if (!supabase) return map;
+  try {
+    const { data } = await supabase.from('product_categories').select('product_id, category_id');
+    if (data && Array.isArray(data)) {
+      for (const row of data) {
+        if (row.product_id && row.category_id) {
+          const list = map.get(row.product_id) || [];
+          if (!list.includes(row.category_id)) list.push(row.category_id);
+          map.set(row.product_id, list);
+        }
+      }
+    }
+  } catch {}
+  return map;
+}
+
 app.post('/api/products', async (req: Request, res: Response) => {
   if (!supabase) {
     res.status(503).json({ success: false, error: 'Database client unavailable' });
@@ -1159,36 +1227,15 @@ app.post('/api/products', async (req: Request, res: Response) => {
 
   try {
     const raw = req.body;
-    let targetCatId = raw.category_id;
-
-    // Resolve category UUID if slug or name was provided
-    if (targetCatId) {
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetCatId);
-      if (!isUuid) {
-        const cleanSlug = String(targetCatId).toLowerCase().replace(/^cat-/, '');
-        const { data: catRows } = await supabase
-          .from('categories')
-          .select('id, slug, name');
-        if (catRows && catRows.length > 0) {
-          const matched = catRows.find(
-            (c: any) =>
-              c.slug === cleanSlug ||
-              c.slug === targetCatId ||
-              c.name.toLowerCase() === String(raw.category_name || '').toLowerCase() ||
-              c.id === targetCatId
-          );
-          if (matched) {
-            targetCatId = matched.id;
-          }
-        }
-      }
-    }
+    const resolvedCatIds = await resolveCategoryIds(raw.category_ids, raw.category_id);
+    let targetCatId = resolvedCatIds[0] || raw.category_id;
 
     // Default to first valid category if missing or still not UUID
     if (!targetCatId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetCatId)) {
       const { data: firstCat } = await supabase.from('categories').select('id').limit(1).single();
       if (firstCat) {
         targetCatId = firstCat.id;
+        if (!resolvedCatIds.includes(firstCat.id)) resolvedCatIds.push(firstCat.id);
       }
     }
 
@@ -1203,6 +1250,12 @@ app.post('/api/products', async (req: Request, res: Response) => {
     const images = Array.isArray(raw.images) && raw.images.length > 0
       ? raw.images
       : (raw.image_url ? [raw.image_url] : ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&q=80']);
+
+    // Rich specs with category_ids
+    const initialSpecs = Array.isArray(raw.specs) || typeof raw.specs === 'object' ? raw.specs : [{ label: 'Standard', value: 'Original' }];
+    const specsPayload = typeof initialSpecs === 'object' && !Array.isArray(initialSpecs)
+      ? { ...initialSpecs, category_ids: resolvedCatIds }
+      : { items: initialSpecs, category_ids: resolvedCatIds };
 
     // EXACT Supabase products table schema: NO category_name column!
     const dbPayload = {
@@ -1219,7 +1272,7 @@ app.post('/api/products', async (req: Request, res: Response) => {
       rating_count: Number(raw.review_count ?? raw.rating_count) || 1,
       brand: raw.brand || 'General',
       is_featured: Boolean(raw.is_featured),
-      specs: Array.isArray(raw.specs) || typeof raw.specs === 'object' ? raw.specs : [{ label: 'Standard', value: 'Original' }],
+      specs: specsPayload,
     };
 
     const { data, error } = await supabase.from('products').insert([dbPayload]).select();
@@ -1229,6 +1282,9 @@ app.post('/api/products', async (req: Request, res: Response) => {
       return;
     }
 
+    // Sync product_categories junction table
+    await syncProductCategoriesTable(prodId, resolvedCatIds);
+
     res.json({
       success: true,
       product: {
@@ -1236,6 +1292,8 @@ app.post('/api/products', async (req: Request, res: Response) => {
         original_price: mrp,
         stock_quantity: stock,
         in_stock: stock > 0,
+        category_id: targetCatId,
+        category_ids: resolvedCatIds,
         category_name: raw.category_name,
       },
     });
@@ -1261,7 +1319,24 @@ app.get('/api/products/featured', async (_req: Request, res: Response) => {
       res.status(400).json({ success: false, error: error.message });
       return;
     }
-    res.json({ success: true, products: data || [] });
+
+    const pcMap = await getProductCategoriesMap();
+    const enriched = (data || []).map((p: any) => {
+      const fromJunction = pcMap.get(p.id);
+      const fromSpecs = p.specs && typeof p.specs === 'object' && Array.isArray(p.specs.category_ids) && p.specs.category_ids.length > 0
+        ? p.specs.category_ids
+        : null;
+      const categoryIds = fromJunction && fromJunction.length > 0
+        ? fromJunction
+        : fromSpecs || (p.category_id ? [p.category_id] : []);
+
+      return {
+        ...p,
+        category_ids: categoryIds,
+      };
+    });
+
+    res.json({ success: true, products: enriched });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err?.message });
   }
@@ -1282,7 +1357,24 @@ app.get('/api/products', async (_req: Request, res: Response) => {
       res.status(400).json({ success: false, error: error.message });
       return;
     }
-    res.json({ success: true, products: data || [] });
+
+    const pcMap = await getProductCategoriesMap();
+    const enriched = (data || []).map((p: any) => {
+      const fromJunction = pcMap.get(p.id);
+      const fromSpecs = p.specs && typeof p.specs === 'object' && Array.isArray(p.specs.category_ids) && p.specs.category_ids.length > 0
+        ? p.specs.category_ids
+        : null;
+      const categoryIds = fromJunction && fromJunction.length > 0
+        ? fromJunction
+        : fromSpecs || (p.category_id ? [p.category_id] : []);
+
+      return {
+        ...p,
+        category_ids: categoryIds,
+      };
+    });
+
+    res.json({ success: true, products: enriched });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err?.message });
   }
@@ -1297,22 +1389,10 @@ app.put('/api/products/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const raw = req.body;
-    let targetCatId = raw.category_id;
+    let resolvedCatIds: string[] = [];
 
-    if (targetCatId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetCatId)) {
-      const cleanSlug = String(targetCatId).toLowerCase().replace(/^cat-/, '');
-      const { data: catRows } = await supabase.from('categories').select('id, slug, name');
-      if (catRows && catRows.length > 0) {
-        const matched = catRows.find(
-          (c: any) =>
-            c.slug === cleanSlug ||
-            c.slug === targetCatId ||
-            c.name.toLowerCase() === String(raw.category_name || '').toLowerCase()
-        );
-        if (matched) {
-          targetCatId = matched.id;
-        }
-      }
+    if (raw.category_ids !== undefined || raw.category_id !== undefined) {
+      resolvedCatIds = await resolveCategoryIds(raw.category_ids, raw.category_id);
     }
 
     const updates: any = {};
@@ -1326,9 +1406,12 @@ app.put('/api/products/:id', async (req: Request, res: Response) => {
     if (raw.stock_quantity !== undefined || raw.stock !== undefined) {
       updates.stock = Number(raw.stock_quantity ?? raw.stock);
     }
-    if (targetCatId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetCatId)) {
-      updates.category_id = targetCatId;
+    if (resolvedCatIds.length > 0) {
+      updates.category_id = resolvedCatIds[0];
+    } else if (raw.category_id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw.category_id)) {
+      updates.category_id = raw.category_id;
     }
+
     if (raw.images !== undefined) updates.images = raw.images;
     if (raw.rating !== undefined) updates.rating = Number(raw.rating);
     if (raw.rating_count !== undefined || raw.review_count !== undefined) {
@@ -1337,24 +1420,33 @@ app.put('/api/products/:id', async (req: Request, res: Response) => {
     if (raw.brand !== undefined) updates.brand = raw.brand;
     if (raw.is_featured !== undefined) {
       updates.is_featured = Boolean(raw.is_featured);
-      if (raw.specs === undefined) {
-        // Fetch existing specs so we NEVER wipe out specs
-        const { data: curProd } = await supabase.from('products').select('specs').eq('id', id).maybeSingle();
-        const curSpecs = curProd?.specs && typeof curProd.specs === 'object' && !Array.isArray(curProd.specs)
-          ? { ...curProd.specs }
-          : {};
-        if (raw.is_featured) {
-          updates.specs = {
-            ...curSpecs,
-            featured_at: raw.featured_at || new Date().toISOString(),
-          };
-        } else {
-          const { featured_at, ...restSpecs } = curSpecs;
-          updates.specs = restSpecs;
-        }
+    }
+
+    // Merge specs preserving existing fields and embedding category_ids
+    const { data: curProd } = await supabase.from('products').select('specs').eq('id', id).maybeSingle();
+    const curSpecs = curProd?.specs && typeof curProd.specs === 'object' && !Array.isArray(curProd.specs)
+      ? { ...curProd.specs }
+      : {};
+
+    let mergedSpecs = {
+      ...curSpecs,
+      ...(raw.specs && typeof raw.specs === 'object' && !Array.isArray(raw.specs) ? raw.specs : {}),
+    };
+
+    if (resolvedCatIds.length > 0) {
+      mergedSpecs.category_ids = resolvedCatIds;
+    }
+
+    if (raw.is_featured !== undefined) {
+      if (raw.is_featured) {
+        mergedSpecs.featured_at = raw.featured_at || new Date().toISOString();
+      } else {
+        const { featured_at, ...restSpecs } = mergedSpecs;
+        mergedSpecs = restSpecs;
       }
     }
-    if (raw.specs !== undefined) updates.specs = raw.specs;
+
+    updates.specs = mergedSpecs;
 
     const { data, error } = await supabase.from('products').update(updates).eq('id', id).select();
     if (error) {
@@ -1362,7 +1454,17 @@ app.put('/api/products/:id', async (req: Request, res: Response) => {
       return;
     }
 
-    res.json({ success: true, product: data?.[0] });
+    if (resolvedCatIds.length > 0) {
+      await syncProductCategoriesTable(id, resolvedCatIds);
+    }
+
+    res.json({
+      success: true,
+      product: {
+        ...data?.[0],
+        category_ids: resolvedCatIds.length > 0 ? resolvedCatIds : (data?.[0]?.category_id ? [data[0].category_id] : []),
+      },
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err?.message });
   }
@@ -1403,7 +1505,21 @@ app.get('/api/products/:id', async (req: Request, res: Response) => {
       }
     } catch {}
 
-    res.json({ success: true, product, variants });
+    const pcMap = await getProductCategoriesMap();
+    const fromJunction = pcMap.get(product.id);
+    const fromSpecs = product.specs && typeof product.specs === 'object' && Array.isArray(product.specs.category_ids) && product.specs.category_ids.length > 0
+      ? product.specs.category_ids
+      : null;
+    const categoryIds = fromJunction && fromJunction.length > 0
+      ? fromJunction
+      : fromSpecs || (product.category_id ? [product.category_id] : []);
+
+    const enrichedProduct = {
+      ...product,
+      category_ids: categoryIds,
+    };
+
+    res.json({ success: true, product: enrichedProduct, variants });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err?.message });
   }
@@ -1417,6 +1533,11 @@ app.delete('/api/products/:id', async (req: Request, res: Response) => {
 
   try {
     const { id } = req.params;
+    try {
+      await supabase.from('product_categories').delete().eq('product_id', id);
+    } catch {
+      // ignore if table does not exist or relation already cleaned up
+    }
     const { error } = await supabase.from('products').delete().eq('id', id);
     if (error) {
       res.status(400).json({ success: false, error: error.message });
@@ -1446,6 +1567,28 @@ app.delete('/api/categories/:id', async (req: Request, res: Response) => {
     res.json({ success: true });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err?.message });
+  }
+});
+
+// Explicit PWA Manifest route to guarantee correct Content-Type header
+app.get(['/manifest.webmanifest', '/manifest.json'], (_req: Request, res: Response) => {
+  const manifestPath = path.resolve(__dirname, 'public', 'manifest.webmanifest');
+  const distManifestPath = path.resolve(__dirname, 'dist', 'manifest.webmanifest');
+  const targetPath = fs.existsSync(distManifestPath) ? distManifestPath : manifestPath;
+  res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.sendFile(targetPath);
+});
+
+// Explicit Service Worker route to ensure no-cache header
+app.get('/sw.js', (_req: Request, res: Response, next: NextFunction) => {
+  const distSwPath = path.resolve(__dirname, 'dist', 'sw.js');
+  if (fs.existsSync(distSwPath)) {
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.sendFile(distSwPath);
+  } else {
+    next();
   }
 });
 

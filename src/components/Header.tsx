@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
 import zevoraOfficialLogo from '../assets/images/zevora-header-logo.png';
+import { SearchDropdown } from './SearchDropdown';
+import { addRecentSearch } from '../utils/recentSearches';
+import { PWAInstallButton } from './PWAInstallButton';
 import {
   ShoppingBag,
   ShoppingCart,
@@ -15,6 +18,7 @@ import {
   ShieldCheck,
   Moon,
   Sun,
+  X,
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
@@ -37,12 +41,74 @@ export const Header: React.FC = () => {
 
   const [searchInput, setSearchInput] = useState(searchQuery);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
+
+  const searchContainerRef = useRef<HTMLDivElement | null>(null);
+  const mobileSearchContainerRef = useRef<HTMLDivElement | null>(null);
+  const mobileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Sync internal search input with external searchQuery changes
+  useEffect(() => {
+    setSearchInput(searchQuery);
+  }, [searchQuery]);
+
+  // Click outside to close search dropdown and user menu
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const clickedInsideDesktop = searchContainerRef.current?.contains(target);
+      const clickedInsideMobile = mobileSearchContainerRef.current?.contains(target);
+      if (!clickedInsideDesktop && !clickedInsideMobile) {
+        setIsSearchDropdownOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsSearchDropdownOpen(false);
+        setShowMobileSearch(false);
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  const handleExecuteSearch = (term: string) => {
+    const clean = term.trim();
+    if (clean) {
+      addRecentSearch(clean);
+      setSearchInput(clean);
+      setIsSearchDropdownOpen(false);
+      setShowMobileSearch(false);
+      navigateTo('search', { searchQuery: clean });
+    }
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    handleExecuteSearch(searchInput);
+  };
+
+  const handleSelectProduct = (productId: string) => {
     if (searchInput.trim()) {
-      navigateTo('search', { searchQuery: searchInput.trim() });
+      addRecentSearch(searchInput.trim());
     }
+    setIsSearchDropdownOpen(false);
+    setShowMobileSearch(false);
+    navigateTo('product_detail', { productId });
+  };
+
+  const handleSelectCategory = (categoryId: string) => {
+    setIsSearchDropdownOpen(false);
+    setShowMobileSearch(false);
+    navigateTo('category_products', { categoryId });
   };
 
   return (
@@ -100,26 +166,57 @@ export const Header: React.FC = () => {
             </div>
           </button>
 
-          {/* Desktop Search Bar */}
-          <form
-            onSubmit={handleSearchSubmit}
-            className="hidden md:flex flex-1 max-w-lg relative items-center"
-          >
-            <input
-              type="text"
-              placeholder="Search Products, Categories, Brands..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-10 pr-20 py-2 bg-slate-100/80 hover:bg-slate-100 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800 dark:focus:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 transition-all"
-            />
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
-            <button
-              type="submit"
-              className="absolute right-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors"
+          {/* Desktop Search Bar with SearchDropdown */}
+          <div ref={searchContainerRef} className="hidden md:flex flex-1 max-w-lg relative items-center">
+            <form
+              onSubmit={handleSearchSubmit}
+              className="w-full relative flex items-center"
             >
-              Search
-            </button>
-          </form>
+              <input
+                type="text"
+                placeholder="Search Products, Categories, Brands..."
+                value={searchInput}
+                onFocus={() => setIsSearchDropdownOpen(true)}
+                onClick={() => setIsSearchDropdownOpen(true)}
+                onChange={(e) => {
+                  setSearchInput(e.target.value);
+                  setIsSearchDropdownOpen(true);
+                }}
+                className="w-full pl-10 pr-24 py-2 bg-slate-100/80 hover:bg-slate-100 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800 dark:focus:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 transition-all"
+              />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
+              <div className="absolute right-1.5 flex items-center gap-1">
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchInput('');
+                      setIsSearchDropdownOpen(true);
+                    }}
+                    className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                    title="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Search
+                </button>
+              </div>
+            </form>
+
+            <SearchDropdown
+              isOpen={isSearchDropdownOpen}
+              onClose={() => setIsSearchDropdownOpen(false)}
+              query={searchInput}
+              onSelectQuery={handleExecuteSearch}
+              onSelectProduct={handleSelectProduct}
+              onSelectCategory={handleSelectCategory}
+            />
+          </div>
 
           {/* Action Icons */}
           <div className="flex items-center gap-1.5 sm:gap-2">
@@ -142,9 +239,22 @@ export const Header: React.FC = () => {
 
             {/* Search icon on mobile */}
             <button
-              onClick={() => navigateTo('search')}
-              className="md:hidden p-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
-              aria-label="Search"
+              onClick={() => {
+                const next = !showMobileSearch;
+                setShowMobileSearch(next);
+                if (next) {
+                  setIsSearchDropdownOpen(true);
+                  setTimeout(() => mobileInputRef.current?.focus(), 50);
+                } else {
+                  setIsSearchDropdownOpen(false);
+                }
+              }}
+              className={`md:hidden p-2 rounded-xl transition-colors ${
+                showMobileSearch
+                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+              aria-label="Toggle search"
             >
               <Search className="w-5 h-5" />
             </button>
@@ -182,6 +292,9 @@ export const Header: React.FC = () => {
                 </span>
               )}
             </button>
+
+            {/* Install App button in header */}
+            <PWAInstallButton variant="header" />
 
             {/* Shopping Cart */}
             <button
@@ -282,6 +395,9 @@ export const Header: React.FC = () => {
                         <SlidersHorizontal className="w-4 h-4 text-slate-400" />
                         Settings &amp; Dark Mode
                       </button>
+                      <div className="px-3 py-1.5 border-t border-slate-100 dark:border-slate-800">
+                        <PWAInstallButton variant="header" className="w-full justify-center" />
+                      </div>
                       <button
                         onClick={() => navigateTo('admin')}
                         className="w-full px-4 py-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 border-t border-slate-100 dark:border-slate-800"
@@ -305,6 +421,63 @@ export const Header: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Mobile Search Row Bar (expandable) */}
+        {showMobileSearch && (
+          <div
+            ref={mobileSearchContainerRef}
+            className="md:hidden px-4 pb-3 pt-1 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 relative"
+          >
+            <form
+              onSubmit={handleSearchSubmit}
+              className="relative flex items-center"
+            >
+              <input
+                ref={mobileInputRef}
+                type="text"
+                placeholder="Search Products, Categories, Brands..."
+                value={searchInput}
+                onFocus={() => setIsSearchDropdownOpen(true)}
+                onClick={() => setIsSearchDropdownOpen(true)}
+                onChange={(e) => {
+                  setSearchInput(e.target.value);
+                  setIsSearchDropdownOpen(true);
+                }}
+                className="w-full pl-10 pr-24 py-2.5 bg-slate-100/90 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
+              <div className="absolute right-1.5 flex items-center gap-1">
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchInput('');
+                      setIsSearchDropdownOpen(true);
+                    }}
+                    className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold"
+                >
+                  Search
+                </button>
+              </div>
+            </form>
+
+            <SearchDropdown
+              isOpen={isSearchDropdownOpen}
+              onClose={() => setIsSearchDropdownOpen(false)}
+              query={searchInput}
+              onSelectQuery={handleExecuteSearch}
+              onSelectProduct={handleSelectProduct}
+              onSelectCategory={handleSelectCategory}
+            />
+          </div>
+        )}
 
         {/* Desktop Navigation Links Strip */}
         <nav className="hidden lg:block bg-slate-50/80 dark:bg-slate-900/90 border-t border-slate-100 dark:border-slate-800 px-4 py-2">

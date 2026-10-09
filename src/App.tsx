@@ -5,6 +5,8 @@ import { BottomNav } from './components/BottomNav';
 import { Toast } from './components/Toast';
 import { AdsterraBanner } from './components/AdsterraBanner';
 import { ProductComparisonModal, ComparisonDock } from './components/ProductComparisonModal';
+import { PWAInstallBanner } from './components/PWAInstallBanner';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { resolveImageUrl } from './utils/imageUrl';
 
 // Views
@@ -112,49 +114,23 @@ const DynamicHeadInjector: React.FC = () => {
       }
       msTile.content = faviconUrl;
 
-      // 6. Web App Manifest with dynamic icons and branding
-      const manifestObj = {
-        name: storeName,
-        short_name: storeName,
-        start_url: '/',
-        display: 'standalone',
-        background_color: '#ffffff',
-        theme_color: '#2563eb',
-        icons: [
-          {
-            src: faviconUrl,
-            sizes: '192x192',
-            type: mimeType,
-          },
-          {
-            src: faviconUrl,
-            sizes: '512x512',
-            type: mimeType,
-          },
-        ],
-      };
+      // 6. Ensure standard Web App Manifest link is present and pointing to /manifest.webmanifest
+      let manifestLink = document.querySelector<HTMLLinkElement>("link[rel='manifest']");
+      if (!manifestLink) {
+        manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        document.head.appendChild(manifestLink);
+      }
+      manifestLink.href = '/manifest.webmanifest';
 
-      let manifestBlobUrl: string | null = null;
-      try {
-        const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
-        manifestBlobUrl = URL.createObjectURL(manifestBlob);
-
-        let manifestLink = document.querySelector<HTMLLinkElement>("link[rel='manifest']");
-        if (!manifestLink) {
-          manifestLink = document.createElement('link');
-          manifestLink.rel = 'manifest';
-          document.head.appendChild(manifestLink);
-        }
-        manifestLink.href = manifestBlobUrl;
-      } catch {}
-
-      return () => {
-        if (manifestBlobUrl) {
-          try {
-            URL.revokeObjectURL(manifestBlobUrl);
-          } catch {}
-        }
-      };
+      // 7. Theme color meta tag
+      let themeMeta = document.querySelector<HTMLMetaElement>("meta[name='theme-color']");
+      if (!themeMeta) {
+        themeMeta = document.createElement('meta');
+        themeMeta.name = 'theme-color';
+        document.head.appendChild(themeMeta);
+      }
+      themeMeta.content = '#08090b';
     }
   }, [storeSettings?.store_name, storeSettings?.tagline, storeSettings?.favicon_url]);
 
@@ -459,6 +435,12 @@ const MainContent: React.FC = () => {
 
       {/* Global Interactive Notification Toast */}
       <Toast />
+
+      {/* PWA In-App Install Prompt Banner */}
+      <PWAInstallBanner />
+
+      {/* Connectivity Status Indicator */}
+      <OfflineIndicator />
     </div>
   );
 };

@@ -1227,12 +1227,25 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           const sku = (rawSpecs && typeof rawSpecs === 'object' ? rawSpecs.sku : undefined);
           const subcategory = (rawSpecs && typeof rawSpecs === 'object' ? rawSpecs.subcategory : undefined);
 
+          let productCategoryIds: string[] = [];
+          if (Array.isArray(p.category_ids) && p.category_ids.length > 0) {
+            productCategoryIds = p.category_ids;
+          } else if (rawSpecs && typeof rawSpecs === 'object' && Array.isArray(rawSpecs.category_ids) && rawSpecs.category_ids.length > 0) {
+            productCategoryIds = rawSpecs.category_ids;
+          } else if (p.category_id) {
+            productCategoryIds = [p.category_id];
+          }
+
+          const resolvedCategoryNames = productCategoryIds.map((cid) => catMap.get(cid) || cid);
+
           return {
             id: p.id,
             name: p.name,
             description: p.description || '',
             category_id: p.category_id,
             category_name: p.category_name || catMap.get(p.category_id) || 'General',
+            category_ids: productCategoryIds,
+            category_names: resolvedCategoryNames,
             price,
             original_price: originalPrice,
             discount_percent: Number(p.discount_percent) || 0,
@@ -2364,6 +2377,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ? (productData.specs as any).items
         : [{ label: 'Brand', value: productData.brand || 'Zevora' }]);
 
+    // Resolve multiple categories
+    const rawCatIds: string[] = Array.isArray((productData as any).category_ids) && (productData as any).category_ids.length > 0
+      ? (productData as any).category_ids
+      : [validCatId].filter(Boolean);
+
+    const resolvedCatIds = rawCatIds.map((cid: string) => {
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cid)) return cid;
+      const found = categories.find((c) => c.id === cid || c.slug === cid || c.name.toLowerCase() === cid.toLowerCase());
+      return found?.id || cid;
+    });
+
+    const primaryCatId = resolvedCatIds[0] || validCatId;
+    const catNames = resolvedCatIds.map((cid: string) => categories.find((c) => c.id === cid)?.name || cid);
+
     const richSpecs = {
       items: specsItems,
       variants: productData.variants || [],
@@ -2374,6 +2401,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       sku: productData.sku || '',
       subcategory: productData.subcategory || '',
       color_variants: productData.color_variants || [],
+      category_ids: resolvedCatIds,
+      category_names: catNames,
     };
 
     // EXACT Supabase products table columns: id, name, description, price, mrp, discount_percent, stock, category_id, images, rating, rating_count, brand, is_featured, specs
@@ -2386,7 +2415,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       mrp: mrp,
       discount_percent: discount,
       stock: stock,
-      category_id: validCatId,
+      category_id: primaryCatId,
+      category_ids: resolvedCatIds,
       images: images,
       rating: Number(productData.rating) || 4.7,
       rating_count: Number(productData.review_count ?? (productData as any).rating_count ?? 1),
@@ -2417,7 +2447,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!savedSuccessfully && isSupabaseConfigured()) {
       const supabase = getSupabase();
       if (supabase) {
-        const { error } = await supabase.from('products').insert([dbPayload]);
+        const { category_ids, ...directPayload } = dbPayload;
+        const { error } = await supabase.from('products').insert([directPayload]);
         if (error) {
           showToast(`Failed to add product to Supabase: ${error.message}`, 'error');
           return false;
@@ -2426,12 +2457,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
-    const catName = categories.find((c) => c.id === validCatId)?.name || productData.category_name || 'General';
+    const catName = categories.find((c) => c.id === primaryCatId)?.name || productData.category_name || 'General';
     const newProduct: Product = {
       ...productData,
       id: newId,
-      category_id: validCatId,
+      category_id: primaryCatId,
       category_name: catName,
+      category_ids: resolvedCatIds,
+      category_names: catNames,
       price: dbPayload.price,
       original_price: dbPayload.mrp,
       discount_percent: dbPayload.discount_percent,
@@ -2468,6 +2501,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
+    let resolvedCatIds: string[] = [];
+    if (updates.category_ids !== undefined) {
+      resolvedCatIds = updates.category_ids.map((cid: string) => {
+        if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cid)) return cid;
+        const found = categories.find((c) => c.id === cid || c.slug === cid || c.name.toLowerCase() === cid.toLowerCase());
+        return found?.id || cid;
+      });
+      if (resolvedCatIds.length > 0) {
+        validCatId = resolvedCatIds[0];
+      }
+    }
+
     const dbUpdates: any = {};
     if (updates.name !== undefined) dbUpdates.name = String(updates.name).trim();
     if (updates.description !== undefined) dbUpdates.description = String(updates.description).trim();
@@ -2480,6 +2525,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       dbUpdates.stock = Number(updates.stock_quantity ?? (updates as any).stock);
     }
     if (validCatId !== undefined) dbUpdates.category_id = validCatId;
+    if (resolvedCatIds.length > 0) dbUpdates.category_ids = resolvedCatIds;
     if (updates.images !== undefined) dbUpdates.images = updates.images;
     if (updates.rating !== undefined) dbUpdates.rating = Number(updates.rating);
     if (updates.review_count !== undefined || (updates as any).rating_count !== undefined) {
@@ -2494,35 +2540,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     if (updates.specs !== undefined) dbUpdates.specs = updates.specs;
 
-    if (
-      updates.variants !== undefined ||
-      updates.colors !== undefined ||
-      updates.sizes !== undefined ||
-      updates.size_chart !== undefined ||
-      updates.sku !== undefined ||
-      updates.subcategory !== undefined ||
-      updates.color_variants !== undefined
-    ) {
-      const existingProd = baseProducts.find((p) => p.id === id);
-      const prevSpecs = existingProd?.specs;
-      const specsItems = Array.isArray(prevSpecs)
-        ? prevSpecs
-        : (prevSpecs && typeof prevSpecs === 'object' && Array.isArray((prevSpecs as any).items)
-          ? (prevSpecs as any).items
-          : []);
+    const existingProd = baseProducts.find((p) => p.id === id);
+    const prevSpecs = existingProd?.specs;
+    const specsItems = Array.isArray(prevSpecs)
+      ? prevSpecs
+      : (prevSpecs && typeof prevSpecs === 'object' && Array.isArray((prevSpecs as any).items)
+        ? (prevSpecs as any).items
+        : []);
 
-      dbUpdates.specs = {
-        items: updates.specs !== undefined && Array.isArray(updates.specs) ? updates.specs : specsItems,
-        variants: updates.variants !== undefined ? updates.variants : (existingProd?.variants || []),
-        colors: updates.colors !== undefined ? updates.colors : (existingProd?.colors || []),
-        sizes: updates.sizes !== undefined ? updates.sizes : (existingProd?.sizes || []),
-        size_chart: updates.size_chart !== undefined ? updates.size_chart : (existingProd?.size_chart || null),
-        brand: updates.brand !== undefined ? updates.brand : (existingProd?.brand || 'Zevora'),
-        sku: updates.sku !== undefined ? updates.sku : (existingProd?.sku || ''),
-        subcategory: updates.subcategory !== undefined ? updates.subcategory : (existingProd?.subcategory || ''),
-        color_variants: updates.color_variants !== undefined ? updates.color_variants : (existingProd?.color_variants || []),
-      };
-    }
+    const finalCatIdsForSpecs = resolvedCatIds.length > 0
+      ? resolvedCatIds
+      : (existingProd?.category_ids || (existingProd?.category_id ? [existingProd.category_id] : []));
+    const finalCatNamesForSpecs = finalCatIdsForSpecs.map((cid) => categories.find((c) => c.id === cid)?.name || cid);
+
+    dbUpdates.specs = {
+      items: updates.specs !== undefined && Array.isArray(updates.specs) ? updates.specs : specsItems,
+      variants: updates.variants !== undefined ? updates.variants : (existingProd?.variants || []),
+      colors: updates.colors !== undefined ? updates.colors : (existingProd?.colors || []),
+      sizes: updates.sizes !== undefined ? updates.sizes : (existingProd?.sizes || []),
+      size_chart: updates.size_chart !== undefined ? updates.size_chart : (existingProd?.size_chart || null),
+      brand: updates.brand !== undefined ? updates.brand : (existingProd?.brand || 'Zevora'),
+      sku: updates.sku !== undefined ? updates.sku : (existingProd?.sku || ''),
+      subcategory: updates.subcategory !== undefined ? updates.subcategory : (existingProd?.subcategory || ''),
+      color_variants: updates.color_variants !== undefined ? updates.color_variants : (existingProd?.color_variants || []),
+      category_ids: finalCatIdsForSpecs,
+      category_names: finalCatNamesForSpecs,
+      ...(typeof dbUpdates.specs === 'object' && !Array.isArray(dbUpdates.specs) ? dbUpdates.specs : {}),
+    };
 
     // Never include category_name in dbUpdates
     let updatedRemotely = false;
@@ -2541,7 +2585,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!updatedRemotely && isSupabaseConfigured() && Object.keys(dbUpdates).length > 0) {
       const supabase = getSupabase();
       if (supabase) {
-        const { error } = await supabase.from('products').update(dbUpdates).eq('id', id);
+        const { category_ids, ...directPayload } = dbUpdates;
+        const { error } = await supabase.from('products').update(directPayload).eq('id', id);
         if (error) {
           showToast(`Failed to update product in Supabase: ${error.message}`, 'error');
           return false;
@@ -2553,6 +2598,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const updated = prev.map((p) => {
         if (p.id !== id) return p;
         const newCatId = validCatId || p.category_id;
+        const finalCatIds = resolvedCatIds.length > 0
+          ? resolvedCatIds
+          : (p.category_ids && p.category_ids.length > 0 ? p.category_ids : [newCatId]);
+        const finalCatNames = finalCatIds.map((cid: string) => categories.find((c) => c.id === cid)?.name || cid);
         const newCatName = categories.find((c) => c.id === newCatId)?.name || p.category_name;
         const mergedSpecs = dbUpdates.specs
           ? (typeof p.specs === 'object' && !Array.isArray(p.specs) ? { ...(p.specs as Record<string, any>), ...dbUpdates.specs } : p.specs)
@@ -2569,6 +2618,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           featured_at: featuredAtVal,
           category_id: newCatId,
           category_name: newCatName,
+          category_ids: finalCatIds,
+          category_names: finalCatNames,
         };
       });
       try {

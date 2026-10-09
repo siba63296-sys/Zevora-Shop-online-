@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
+import { PWAInstallButton } from '../components/PWAInstallButton';
 import {
   ChevronLeft,
   Globe,
@@ -30,12 +31,94 @@ export const SettingsView: React.FC = () => {
     isDarkMode,
     setThemeMode,
     toggleDarkMode,
+    updateProfile,
   } = useStore();
-  const [orderAlerts, setOrderAlerts] = useState(true);
-  const [dealAlerts, setDealAlerts] = useState(true);
-  const [whatsappUpdates, setWhatsappUpdates] = useState(false);
+  const [orderEmailUpdates, setOrderEmailUpdates] = useState<boolean>(() => {
+    try {
+      if (user?.order_email_updates !== undefined) {
+        return user.order_email_updates;
+      }
+      const saved = localStorage.getItem('zevora_pref_order_email_updates');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+  const [orderAlerts, setOrderAlerts] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('zevora_pref_order_alerts');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+  const [dealAlerts, setDealAlerts] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('zevora_pref_deal_alerts');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+  const [whatsappUpdates, setWhatsappUpdates] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('zevora_pref_whatsapp_updates');
+      return saved !== null ? saved === 'true' : false;
+    } catch {
+      return false;
+    }
+  });
   const [currency, setCurrency] = useState('INR (₹)');
   const [language, setLanguage] = useState('English');
+
+  const handleToggleOrderEmailUpdates = () => {
+    const nextVal = !orderEmailUpdates;
+    setOrderEmailUpdates(nextVal);
+    try {
+      localStorage.setItem('zevora_pref_order_email_updates', String(nextVal));
+    } catch {}
+    if (user) {
+      try {
+        updateProfile({ order_email_updates: nextVal });
+      } catch {}
+    }
+    showToast(
+      nextVal
+        ? '✉️ Email order updates enabled · Confirmations & tracking will be emailed'
+        : 'Email order updates disabled',
+      'info'
+    );
+  };
+
+  const handleToggleOrderAlerts = () => {
+    const nextVal = !orderAlerts;
+    setOrderAlerts(nextVal);
+    try {
+      localStorage.setItem('zevora_pref_order_alerts', String(nextVal));
+    } catch {}
+    showToast(
+      nextVal ? 'Order tracking notifications enabled' : 'Order tracking notifications disabled',
+      'info'
+    );
+  };
+
+  const handleToggleDealAlerts = () => {
+    const nextVal = !dealAlerts;
+    setDealAlerts(nextVal);
+    try {
+      localStorage.setItem('zevora_pref_deal_alerts', String(nextVal));
+    } catch {}
+    showToast(nextVal ? 'Promotional alerts enabled' : 'Promotional alerts disabled', 'info');
+  };
+
+  const handleToggleWhatsappUpdates = () => {
+    const nextVal = !whatsappUpdates;
+    setWhatsappUpdates(nextVal);
+    try {
+      localStorage.setItem('zevora_pref_whatsapp_updates', String(nextVal));
+    } catch {}
+    showToast(nextVal ? 'WhatsApp notifications enabled' : 'WhatsApp notifications disabled', 'info');
+  };
 
   const handleClearCache = () => {
     // Clear temporary local storage items while preserving essential app state
@@ -109,6 +192,9 @@ export const SettingsView: React.FC = () => {
           </button>
         </div>
       )}
+
+      {/* PWA App Installation Card */}
+      <PWAInstallButton variant="card" />
 
       {/* Theme & Night Mode Preferences (Site-Wide Dark Mode) */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-2xs divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden">
@@ -341,6 +427,46 @@ export const SettingsView: React.FC = () => {
           </span>
         </div>
 
+        {/* Email Order Updates */}
+        <div className="p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+              <Mail className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                  Email Order Updates
+                </h4>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/40">
+                  Orders
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                Receive order confirmation receipts, invoice details, and tracking updates via email
+              </p>
+              {user?.email && (
+                <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium mt-1 flex items-center gap-1">
+                  <span>Sending to:</span>
+                  <span className="font-semibold underline">{user.email}</span>
+                </p>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={orderEmailUpdates}
+            aria-label="Toggle email order updates"
+            onClick={handleToggleOrderEmailUpdates}
+            className={`w-11 h-6 rounded-full transition-colors p-0.5 flex items-center cursor-pointer shrink-0 ${
+              orderEmailUpdates ? 'bg-blue-600 justify-end' : 'bg-slate-200 dark:bg-slate-700 justify-start'
+            }`}
+          >
+            <div className="w-5 h-5 rounded-full bg-white shadow-xs"></div>
+          </button>
+        </div>
+
         {/* Order tracking alerts */}
         <div className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -348,20 +474,17 @@ export const SettingsView: React.FC = () => {
               <Bell className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Order &amp; Delivery Updates</h4>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500">Receive live shipment tracking alerts</p>
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Live Shipment Tracking Alerts</h4>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500">Real-time in-app status updates as your parcel moves</p>
             </div>
           </div>
           <button
             type="button"
-            onClick={() => {
-              setOrderAlerts(!orderAlerts);
-              showToast(
-                !orderAlerts ? 'Order tracking notifications enabled' : 'Order tracking notifications disabled',
-                'info'
-              );
-            }}
-            className={`w-11 h-6 rounded-full transition-colors p-0.5 flex items-center cursor-pointer ${
+            role="switch"
+            aria-checked={orderAlerts}
+            aria-label="Toggle live shipment tracking alerts"
+            onClick={handleToggleOrderAlerts}
+            className={`w-11 h-6 rounded-full transition-colors p-0.5 flex items-center cursor-pointer shrink-0 ${
               orderAlerts ? 'bg-blue-600 justify-end' : 'bg-slate-200 dark:bg-slate-700 justify-start'
             }`}
           >
@@ -382,11 +505,11 @@ export const SettingsView: React.FC = () => {
           </div>
           <button
             type="button"
-            onClick={() => {
-              setDealAlerts(!dealAlerts);
-              showToast(!dealAlerts ? 'Promotional alerts enabled' : 'Promotional alerts disabled', 'info');
-            }}
-            className={`w-11 h-6 rounded-full transition-colors p-0.5 flex items-center cursor-pointer ${
+            role="switch"
+            aria-checked={dealAlerts}
+            aria-label="Toggle special offers and discounts"
+            onClick={handleToggleDealAlerts}
+            className={`w-11 h-6 rounded-full transition-colors p-0.5 flex items-center cursor-pointer shrink-0 ${
               dealAlerts ? 'bg-blue-600 justify-end' : 'bg-slate-200 dark:bg-slate-700 justify-start'
             }`}
           >
@@ -407,11 +530,11 @@ export const SettingsView: React.FC = () => {
           </div>
           <button
             type="button"
-            onClick={() => {
-              setWhatsappUpdates(!whatsappUpdates);
-              showToast(!whatsappUpdates ? 'WhatsApp notifications enabled' : 'WhatsApp notifications disabled', 'info');
-            }}
-            className={`w-11 h-6 rounded-full transition-colors p-0.5 flex items-center cursor-pointer ${
+            role="switch"
+            aria-checked={whatsappUpdates}
+            aria-label="Toggle WhatsApp updates"
+            onClick={handleToggleWhatsappUpdates}
+            className={`w-11 h-6 rounded-full transition-colors p-0.5 flex items-center cursor-pointer shrink-0 ${
               whatsappUpdates ? 'bg-emerald-600 justify-end' : 'bg-slate-200 dark:bg-slate-700 justify-start'
             }`}
           >

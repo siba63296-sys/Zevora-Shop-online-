@@ -110,7 +110,7 @@ export const INITIAL_OFFERS: Offer[] = [
     category_name: 'Audio & Wearables',
     description: 'Huge discounts on premium wireless earbuds, smartwatches, and computing devices.',
     image_url: headphonesImg,
-    button_text: 'Explore Deals',
+    button_text: 'Shop Now',
     button_link: 'cat-electronics',
     start_at: null,
     end_at: null,

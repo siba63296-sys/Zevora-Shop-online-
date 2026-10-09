@@ -95,6 +95,12 @@ export const DynamicOfferBanner: React.FC = () => {
     touchStartYRef.current = null;
   };
 
+  const handleTouchCancel = () => {
+    setIsPaused(false);
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+  };
+
   return (
     <div
       className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-slate-900 text-white shadow-md sm:shadow-lg min-h-[190px] sm:min-h-[250px] md:min-h-[290px] lg:min-h-[330px] group select-none transition-all duration-300"
@@ -102,6 +108,7 @@ export const DynamicOfferBanner: React.FC = () => {
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchCancel}
     >
       {/* Horizontal Carousel Sliding Track */}
       <div
@@ -169,7 +176,13 @@ export const DynamicOfferBanner: React.FC = () => {
                     onClick={() => handleDestinationClick(offer)}
                     className="px-5 py-2.5 sm:px-6 sm:py-3 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs sm:text-sm font-bold rounded-xl sm:rounded-2xl shadow-lg shadow-blue-600/40 flex items-center gap-2 transition-all cursor-pointer"
                   >
-                    <span>{offer.button_text?.trim() || 'Shop Now'}</span>
+                    <span>
+                      {offer.button_text &&
+                      !offer.button_text.toLowerCase().includes('explore') &&
+                      offer.button_text.trim()
+                        ? offer.button_text.trim()
+                        : 'Shop Now'}
+                    </span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>

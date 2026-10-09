@@ -42,6 +42,8 @@ export interface Product {
   description: string;
   category_id: string;
   category_name?: string;
+  category_ids?: string[];
+  category_names?: string[];
   price: number;
   original_price: number;
   discount_percent: number;
@@ -210,6 +212,7 @@ export interface UserProfile {
   role: 'admin' | 'customer';
   avatar_url?: string;
   addresses?: Address[];
+  order_email_updates?: boolean;
   created_at?: string;
 }
 
