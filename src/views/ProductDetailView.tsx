@@ -39,6 +39,7 @@ import {
 } from '../utils/variants';
 import { resolveImageUrl } from '../utils/imageUrl';
 import { fetchProductByIdFromSupabase } from '../lib/supabase';
+import { isElectricalProduct, getProductWarrantyInfo } from '../utils/productWarranty';
 
 export const ProductDetailView: React.FC = () => {
   const {
@@ -290,6 +291,20 @@ export const ProductDetailView: React.FC = () => {
       return { name: String(c), hex: '#2563eb' };
     });
   }, [product?.colors]);
+
+  // Determine warranty eligibility and info (electrical/electronic products only)
+  const warrantyInfo = useMemo(() => {
+    return getProductWarrantyInfo(product, categories);
+  }, [product, categories]);
+
+  // Filter out any warranty specs for non-electrical products
+  const displayedSpecs = useMemo(() => {
+    if (!product?.specs) return [];
+    if (warrantyInfo) return product.specs;
+    return product.specs.filter(
+      (spec) => !/warranty|guarantee/i.test(spec.label)
+    );
+  }, [product?.specs, warrantyInfo]);
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedColor, setSelectedColor] = useState('');
@@ -780,9 +795,9 @@ export const ProductDetailView: React.FC = () => {
           </div>
 
           {/* Spec Badges Grid */}
-          {product.specs && product.specs.length > 0 && (
+          {displayedSpecs.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {product.specs.map((spec, idx) => (
+              {displayedSpecs.map((spec, idx) => (
                 <div key={idx} className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center">
                   <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold block truncate">
                     {spec.label}
@@ -1058,17 +1073,19 @@ export const ProductDetailView: React.FC = () => {
           </div>
 
           {/* Delivery & Trust highlights */}
-          <div className="grid grid-cols-3 gap-2 pt-4 border-t border-slate-200 dark:border-slate-800 text-center">
+          <div className={`grid ${warrantyInfo ? 'grid-cols-3' : 'grid-cols-2'} gap-2 pt-4 border-t border-slate-200 dark:border-slate-800 text-center`}>
             <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
               <Truck className="w-4 h-4 text-blue-600 dark:text-blue-400 mx-auto mb-1" />
               <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block">Fast Delivery</span>
               <span className="text-[9px] text-slate-400 dark:text-slate-500 block">2-4 Business Days</span>
             </div>
-            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mx-auto mb-1" />
-              <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block">1 Year Warranty</span>
-              <span className="text-[9px] text-slate-400 dark:text-slate-500 block">100% Genuine</span>
-            </div>
+            {warrantyInfo && (
+              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mx-auto mb-1" />
+                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block">{warrantyInfo.warrantyTitle}</span>
+                <span className="text-[9px] text-slate-400 dark:text-slate-500 block">{warrantyInfo.warrantySubtitle}</span>
+              </div>
+            )}
             <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
               <RotateCcw className="w-4 h-4 text-purple-600 dark:text-purple-400 mx-auto mb-1" />
               <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block">7 Days Return</span>

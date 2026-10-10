@@ -1070,8 +1070,11 @@ export const AdminView: React.FC = () => {
         </button>
       </div>
 
-      {/* 1. PRODUCTS TAB (Original Product Management with List, Search, Edit, Delete) */}
-      {activeTab === 'products' && (
+      {/* Admin Content Area wrapped with AdminErrorBoundary */}
+      <AdminErrorBoundary tabName={`Admin Tab: ${activeTab}`}>
+        <div className="space-y-6">
+          {/* 1. PRODUCTS TAB (Original Product Management with List, Search, Edit, Delete) */}
+          {activeTab === 'products' && (
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -2458,6 +2461,8 @@ export const AdminView: React.FC = () => {
           </div>
         </div>
       )}
+        </div>
+      </AdminErrorBoundary>
 
       {/* Add / Edit Product Modal */}
       {showAddProductModal && (

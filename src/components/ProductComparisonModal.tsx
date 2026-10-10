@@ -12,10 +12,12 @@ import {
   Package,
   Layers,
 } from 'lucide-react';
+import { isElectricalProduct } from '../utils/productWarranty';
 
 export const ProductComparisonModal: React.FC = () => {
   const {
     comparisonList,
+    categories,
     removeFromComparison,
     clearComparison,
     isCompareModalOpen,
@@ -26,10 +28,16 @@ export const ProductComparisonModal: React.FC = () => {
 
   if (!isCompareModalOpen) return null;
 
-  // Collect all unique specification labels across all compared products
+  // Collect all unique specification labels across all compared products.
+  // Never display warranty labels for products that are non-electrical.
   const allSpecLabels = Array.from(
     new Set(
-      comparisonList.flatMap((p) => (p.specs || []).map((s) => s.label.trim()))
+      comparisonList.flatMap((p) => {
+        const isElect = isElectricalProduct(p, categories);
+        return (p.specs || [])
+          .filter((s) => isElect || !/warranty|guarantee/i.test(s.label))
+          .map((s) => s.label.trim());
+      })
     )
   );
 
@@ -245,19 +253,26 @@ export const ProductComparisonModal: React.FC = () => {
 
                       {/* Dynamic Specs */}
                       {allSpecLabels.map((label) => {
+                        const isWarrantyLabel = /warranty|guarantee/i.test(label);
+                        const isProductElect = isElectricalProduct(product, categories);
+
                         const matchedSpec = (product.specs || []).find(
                           (s) => s.label.trim().toLowerCase() === label.toLowerCase()
                         );
+
+                        // If it's a warranty spec and product is non-electrical, never show warranty value
+                        const displayValue = (isWarrantyLabel && !isProductElect) ? null : matchedSpec?.value;
+
                         return (
                           <div
                             key={label}
                             className="py-2 border-b border-slate-200/60 dark:border-slate-700/60 text-xs text-slate-700 dark:text-slate-300 font-medium truncate"
-                            title={matchedSpec ? matchedSpec.value : '—'}
+                            title={displayValue || '—'}
                           >
                             <span className="sm:hidden font-bold text-slate-400 dark:text-slate-500 block text-[10px]">
                               {label}:
                             </span>
-                            {matchedSpec ? matchedSpec.value : <span className="text-slate-300 dark:text-slate-600">—</span>}
+                            {displayValue ? displayValue : <span className="text-slate-300 dark:text-slate-600">—</span>}
                           </div>
                         );
                       })}
