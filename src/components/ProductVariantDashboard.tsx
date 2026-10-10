@@ -41,14 +41,15 @@ import {
 } from 'lucide-react';
 
 export const ProductVariantDashboard: React.FC = () => {
+  const store = useStore();
+  const products = useMemo(() => Array.isArray(store.products) ? store.products : [], [store.products]);
+  const categories = useMemo(() => Array.isArray(store.categories) ? store.categories : [], [store.categories]);
   const {
-    products,
-    categories,
     addProduct,
     updateProduct,
     deleteProduct,
     showToast,
-  } = useStore();
+  } = store;
 
   // Search & Filter States
   const [searchTerm, setSearchTerm] = useState('');
@@ -120,14 +121,16 @@ export const ProductVariantDashboard: React.FC = () => {
   // Filtered Products
   const filteredProducts = useMemo(() => {
     return products.filter((prod) => {
+      if (!prod) return false;
+
       // Search term
       if (searchTerm.trim()) {
         const query = searchTerm.toLowerCase();
-        const matchesName = prod.name.toLowerCase().includes(query);
+        const matchesName = (prod.name || '').toLowerCase().includes(query);
         const matchesBrand = (prod.brand || '').toLowerCase().includes(query);
         const matchesSku = (prod.sku || '').toLowerCase().includes(query);
         const matchesCat = (prod.category_name || '').toLowerCase().includes(query);
-        const matchesVariant = prod.variants?.some(
+        const matchesVariant = Array.isArray(prod.variants) && prod.variants.some(
           (v) => (v.sku || '').toLowerCase().includes(query) || (v.size || '').toLowerCase().includes(query)
         );
         if (!matchesName && !matchesBrand && !matchesSku && !matchesCat && !matchesVariant) {
@@ -140,10 +143,17 @@ export const ProductVariantDashboard: React.FC = () => {
         const productCatIds = [
           prod.category_id,
           ...(Array.isArray(prod.category_ids) ? prod.category_ids : []),
-        ];
+        ].filter(Boolean);
         const catObj = categories.find((c) => c.id === selectedCategory || c.slug === selectedCategory);
         const targetSet = new Set([selectedCategory, catObj?.id, catObj?.slug].filter(Boolean));
-        if (!productCatIds.some((cid) => targetSet.has(cid))) {
+        if (!productCatIds.some((cid) => {
+          const cidStr = typeof cid === 'string'
+            ? cid
+            : (cid && typeof cid === 'object' && ('id' in cid || 'category_id' in cid)
+                ? ((cid as any).id || (cid as any).category_id)
+                : String(cid || ''));
+          return targetSet.has(cidStr);
+        })) {
           return false;
         }
       }
@@ -154,20 +164,21 @@ export const ProductVariantDashboard: React.FC = () => {
       }
 
       // Stock status filter
-      if (stockFilter === 'in_stock' && (!prod.in_stock || prod.stock_quantity <= 0)) {
+      const pStock = Number(prod.stock_quantity ?? (prod as any).stock ?? 0);
+      if (stockFilter === 'in_stock' && (!prod.in_stock || pStock <= 0)) {
         return false;
       }
-      if (stockFilter === 'out_of_stock' && prod.in_stock && prod.stock_quantity > 0) {
+      if (stockFilter === 'out_of_stock' && prod.in_stock && pStock > 0) {
         return false;
       }
 
       // Has sizes filter
-      const hasSizes = prod.sizes && prod.sizes.length > 0;
+      const hasSizes = Array.isArray(prod.sizes) && prod.sizes.length > 0;
       if (hasSizesFilter === 'with_sizes' && !hasSizes) return false;
       if (hasSizesFilter === 'without_sizes' && hasSizes) return false;
 
       // Has colors filter
-      const hasColors = prod.colors && prod.colors.length > 0;
+      const hasColors = Array.isArray(prod.colors) && prod.colors.length > 0;
       if (hasColorsFilter === 'with_colors' && !hasColors) return false;
       if (hasColorsFilter === 'without_colors' && hasColors) return false;
 
@@ -175,6 +186,7 @@ export const ProductVariantDashboard: React.FC = () => {
     });
   }, [
     products,
+    categories,
     searchTerm,
     selectedCategory,
     selectedBrand,
@@ -191,13 +203,18 @@ export const ProductVariantDashboard: React.FC = () => {
     let valuation = 0;
 
     products.forEach((p) => {
-      if (p.in_stock && p.stock_quantity > 0) {
+      if (!p) return;
+      const pStock = Number(p.stock_quantity ?? (p as any).stock ?? 0);
+      const pPrice = Number(p.price) || 0;
+      if (p.in_stock && pStock > 0) {
         inStockCount++;
       } else {
         outOfStockCount++;
       }
-      totalVariantsCount += p.variants?.length || (p.sizes?.length || 1);
-      valuation += p.price * (p.stock_quantity || 0);
+      totalVariantsCount += Array.isArray(p.variants) && p.variants.length > 0
+        ? p.variants.length
+        : (Array.isArray(p.sizes) ? p.sizes.length : 1);
+      valuation += pPrice * pStock;
     });
 
     return {
@@ -205,7 +222,7 @@ export const ProductVariantDashboard: React.FC = () => {
       inStock: inStockCount,
       outOfStock: outOfStockCount,
       variants: totalVariantsCount,
-      valuation,
+      valuation: Number.isNaN(valuation) ? 0 : valuation,
     };
   }, [products]);
 
@@ -957,14 +974,19 @@ export const ProductVariantDashboard: React.FC = () => {
                           {((Array.isArray(prod.category_ids) && prod.category_ids.length > 0)
                             ? prod.category_ids
                             : (prod.category_id ? [prod.category_id] : [])
-                          ).map((cid) => {
+                          ).map((rawCid, cIndex) => {
+                            const cid = typeof rawCid === 'string'
+                              ? rawCid
+                              : (rawCid && typeof rawCid === 'object' && ('id' in rawCid || 'category_id' in rawCid)
+                                  ? ((rawCid as any).id || (rawCid as any).category_id)
+                                  : String(rawCid || ''));
                             const cObj = categories.find((c) => c.id === cid || c.slug === cid);
                             return (
                               <span
-                                key={cid}
+                                key={`${prod.id}-${cid}-${cIndex}`}
                                 className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs"
                               >
-                                {cObj?.name || cid}
+                                {cObj?.name || cid || 'General'}
                               </span>
                             );
                           })}
@@ -979,15 +1001,15 @@ export const ProductVariantDashboard: React.FC = () => {
                       <td className="p-3.5">
                         <div className="flex items-baseline gap-1.5">
                           <span className="font-extrabold text-slate-900 tabular-nums">
-                            ₹{prod.price.toLocaleString('en-IN')}
+                            ₹{(Number(prod.price) || 0).toLocaleString('en-IN')}
                           </span>
-                          {prod.original_price > prod.price && (
+                          {Number(prod.original_price) > Number(prod.price) && (
                             <span className="text-[11px] text-slate-400 line-through tabular-nums">
-                              ₹{prod.original_price.toLocaleString('en-IN')}
+                              ₹{(Number(prod.original_price) || 0).toLocaleString('en-IN')}
                             </span>
                           )}
                         </div>
-                        {prod.discount_percent > 0 && (
+                        {Number(prod.discount_percent) > 0 && (
                           <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded inline-block mt-0.5">
                             {prod.discount_percent}% OFF
                           </span>
@@ -1993,7 +2015,10 @@ export const ProductVariantDashboard: React.FC = () => {
         isOpen={previewChartOpen}
         onClose={() => setPreviewChartOpen(false)}
         productName={formName || 'Product Preview'}
-        categoryName={formCategoryId}
+        categoryName={
+          categories.find((c) => formCategoryIds.includes(c.id) || formCategoryIds.includes(c.slug))?.name ||
+          (formCategoryIds[0] || 'General')
+        }
         customChart={
           formSizeChartType === 'girls'
             ? GIRLS_DRESS_SIZE_CHART

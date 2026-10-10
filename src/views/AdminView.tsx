@@ -4,6 +4,7 @@ import { Product, Category, OrderStatus, Order, Offer, Coupon, StoreSettings } f
 import { uploadProductImageToSupabase, uploadBannerImageToSupabase } from '../lib/supabase';
 import { generateSupabaseDemoSeedSql } from '../data/supabaseSeedSql';
 import { ProductVariantDashboard } from '../components/ProductVariantDashboard';
+import { AdminErrorBoundary } from '../components/AdminErrorBoundary';
 import { MultiCategorySelector } from '../components/MultiCategorySelector';
 import {
   ShieldCheck,
@@ -1372,7 +1373,9 @@ export const AdminView: React.FC = () => {
 
       {/* 2. PRODUCT & VARIANT MANAGER TAB (Dedicated Advanced Variant Dashboard) */}
       {activeTab === 'variant_manager' && (
-        <ProductVariantDashboard />
+        <AdminErrorBoundary tabName="Product & Variant Manager">
+          <ProductVariantDashboard />
+        </AdminErrorBoundary>
       )}
 
       {/* 2. CATEGORIES TAB */}

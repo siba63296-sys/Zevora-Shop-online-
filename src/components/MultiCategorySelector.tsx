@@ -13,8 +13,8 @@ interface MultiCategorySelectorProps {
 }
 
 export const MultiCategorySelector: React.FC<MultiCategorySelectorProps> = ({
-  categories,
-  selectedCategoryIds,
+  categories = [],
+  selectedCategoryIds = [],
   onChange,
   label = 'Assigned Categories',
   required = true,
@@ -24,6 +24,23 @@ export const MultiCategorySelector: React.FC<MultiCategorySelectorProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const safeCategories = useMemo(() => {
+    return Array.isArray(categories) ? categories.filter(Boolean) : [];
+  }, [categories]);
+
+  const safeSelectedIds = useMemo(() => {
+    if (!Array.isArray(selectedCategoryIds)) return [];
+    return selectedCategoryIds
+      .filter(Boolean)
+      .map((item) =>
+        typeof item === 'string'
+          ? item
+          : typeof item === 'object' && ('id' in item || 'category_id' in item)
+          ? ((item as any).id || (item as any).category_id)
+          : String(item)
+      );
+  }, [selectedCategoryIds]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -39,33 +56,33 @@ export const MultiCategorySelector: React.FC<MultiCategorySelectorProps> = ({
   // Filtered categories by search query
   const filteredCategories = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return categories;
-    return categories.filter(
+    if (!q) return safeCategories;
+    return safeCategories.filter(
       (c) =>
-        c.name.toLowerCase().includes(q) ||
+        (c.name || '').toLowerCase().includes(q) ||
         (c.slug && c.slug.toLowerCase().includes(q)) ||
         (c.description && c.description.toLowerCase().includes(q))
     );
-  }, [categories, searchQuery]);
+  }, [safeCategories, searchQuery]);
 
   // Selected category objects, resolving by both ID and slug
   const selectedCategories = useMemo(() => {
     const seen = new Set<string>();
     const list: Category[] = [];
 
-    for (const rawId of selectedCategoryIds) {
+    for (const rawId of safeSelectedIds) {
       if (!rawId) continue;
-      const cat = categories.find((c) => c.id === rawId || c.slug === rawId);
+      const cat = safeCategories.find((c) => c.id === rawId || c.slug === rawId);
       if (cat && !seen.has(cat.id)) {
         seen.add(cat.id);
         list.push(cat);
       }
     }
     return list;
-  }, [categories, selectedCategoryIds]);
+  }, [safeCategories, safeSelectedIds]);
 
   const isCategorySelected = (cat: Category): boolean => {
-    return selectedCategoryIds.includes(cat.id) || (cat.slug ? selectedCategoryIds.includes(cat.slug) : false);
+    return safeSelectedIds.includes(cat.id) || (cat.slug ? safeSelectedIds.includes(cat.slug) : false);
   };
 
   const handleToggle = (cat: Category) => {
@@ -75,10 +92,10 @@ export const MultiCategorySelector: React.FC<MultiCategorySelectorProps> = ({
 
     if (isSelected) {
       // Remove both ID and slug matches
-      next = selectedCategoryIds.filter((id) => id !== cat.id && id !== cat.slug);
+      next = safeSelectedIds.filter((id) => id !== cat.id && id !== cat.slug);
     } else {
       // Add primary canonical ID
-      next = Array.from(new Set([...selectedCategoryIds, cat.id]));
+      next = Array.from(new Set([...safeSelectedIds, cat.id]));
     }
     onChange(next);
   };
@@ -86,13 +103,13 @@ export const MultiCategorySelector: React.FC<MultiCategorySelectorProps> = ({
   const handleRemove = (e: React.MouseEvent, cat: Category) => {
     e.stopPropagation();
     if (disabled) return;
-    onChange(selectedCategoryIds.filter((id) => id !== cat.id && id !== cat.slug));
+    onChange(safeSelectedIds.filter((id) => id !== cat.id && id !== cat.slug));
   };
 
   const handleSelectAll = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (disabled) return;
-    const allIds = Array.from(new Set(categories.map((c) => c.id)));
+    const allIds = Array.from(new Set(safeCategories.map((c) => c.id)));
     onChange(allIds);
   };
 
