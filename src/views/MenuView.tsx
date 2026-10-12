@@ -1,6 +1,5 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext';
-import { PWAInstallButton } from '../components/PWAInstallButton';
 import {
   Home,
   LayoutGrid,
@@ -35,9 +34,6 @@ export const MenuView: React.FC = () => {
           )}
         </button>
       </div>
-
-      {/* PWA App Installation Card */}
-      <PWAInstallButton variant="card" />
 
       {/* Main Menu Links (Matching Screen 13) */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-2xs divide-y divide-slate-100 overflow-hidden">

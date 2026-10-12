@@ -1,49 +1,9 @@
-export interface ProductVariant {
-  id: string;
-  sku?: string;
-  color?: string;
-  color_hex?: string;
-  size?: string;
-  price?: number;
-  original_price?: number;
-  stock_quantity: number;
-  images?: string[];
-  in_stock?: boolean;
-}
-
-export interface ColorVariant {
-  name: string;
-  hex: string;
-  images?: string[];
-}
-
-export interface SizeChartRow {
-  size: string;
-  chest?: string;
-  waist?: string;
-  hips?: string;
-  length?: string;
-  shoulder?: string;
-  age_group?: string;
-  height?: string;
-}
-
-export interface SizeChart {
-  type: 'standard' | 'girls' | 'footwear' | 'custom';
-  title?: string;
-  unit: 'inches' | 'cm';
-  rows: SizeChartRow[];
-  guide_tips?: string[];
-}
-
 export interface Product {
   id: string;
   name: string;
   description: string;
   category_id: string;
   category_name?: string;
-  category_ids?: string[];
-  category_names?: string[];
   price: number;
   original_price: number;
   discount_percent: number;
@@ -53,17 +13,9 @@ export interface Product {
   stock_quantity: number;
   images: string[];
   specs: { label: string; value: string }[];
-  colors: { name: string; hex: string; images?: string[] }[];
+  colors: { name: string; hex: string }[];
   sizes?: string[];
-  brand?: string;
-  subcategory?: string;
-  sku?: string;
-  variants?: ProductVariant[];
-  color_variants?: ColorVariant[];
-  size_chart?: SizeChart;
-  size_chart_type?: string;
   is_featured?: boolean;
-  featured_at?: string;
   is_deal?: boolean;
   applied_offer_id?: string;
   applied_offer_title?: string;
@@ -89,10 +41,6 @@ export interface CartItem {
   quantity: number;
   selected_color?: string;
   selected_size?: string;
-  selected_variant_id?: string;
-  selected_variant_sku?: string;
-  variant_price?: number;
-  variant_original_price?: number;
 }
 
 export interface WishlistItem {
@@ -127,8 +75,6 @@ export interface OrderItem {
   quantity: number;
   color?: string;
   size?: string;
-  variant_sku?: string;
-  variant_id?: string;
 }
 
 export type OrderStatus =
@@ -212,7 +158,6 @@ export interface UserProfile {
   role: 'admin' | 'customer';
   avatar_url?: string;
   addresses?: Address[];
-  order_email_updates?: boolean;
   created_at?: string;
 }
 
@@ -231,15 +176,15 @@ export interface ProductReview {
 
 export interface Offer {
   id: string;
-  title?: string;
-  discount_text?: string;
+  title: string;
+  discount_text: string;
   discount_percentage?: number;
   category_id?: string;
   category_name?: string;
-  description?: string;
+  description: string;
   image_url: string;
-  button_text?: string;
-  button_link?: string;
+  button_text: string;
+  button_link: string;
   start_at?: string | null;
   end_at?: string | null;
   is_active: boolean;

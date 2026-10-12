@@ -13,9 +13,6 @@ import {
   Offer,
   StoreSettings,
   Coupon,
-  ProductVariant,
-  ColorVariant,
-  SizeChart,
 } from '../types';
 import {
   INITIAL_CATEGORIES,
@@ -38,8 +35,6 @@ import {
 } from '../lib/supabase';
 import { calculateDiscountedProduct, isOfferCurrentlyActive } from '../utils/pricing';
 import { isCouponCurrentlyActive, validateCouponForCart } from '../utils/coupons';
-import { resolveImageUrl } from '../utils/imageUrl';
-import { PRESET_COLORS } from '../utils/variants';
 
 interface StoreContextType {
   // Navigation
@@ -59,7 +54,7 @@ interface StoreContextType {
   // Cart
   cart: CartItem[];
   cartCount: number;
-  addToCart: (product: Product, quantity?: number, color?: string, size?: string, variant?: ProductVariant | null) => void;
+  addToCart: (product: Product, quantity?: number, color?: string, size?: string) => void;
   removeFromCart: (cartItemId: string) => void;
   updateCartQuantity: (cartItemId: string, newQty: number) => void;
   clearCart: () => void;
@@ -176,12 +171,6 @@ interface StoreContextType {
   // Toasts
   toast: { message: string; type: 'success' | 'info' | 'error' } | null;
   showToast: (message: string, type?: 'success' | 'info' | 'error') => void;
-
-  // Theme & Dark Mode
-  themeMode: 'light' | 'dark' | 'system';
-  isDarkMode: boolean;
-  setThemeMode: (mode: 'light' | 'dark' | 'system') => void;
-  toggleDarkMode: () => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -199,76 +188,6 @@ const LOCAL_STORAGE_OFFERS = 'online_store_offers_v1';
 const LOCAL_STORAGE_STORE_SETTINGS = 'online_store_settings_v1';
 const LOCAL_STORAGE_COUPONS = 'online_store_coupons_v1';
 const LOCAL_STORAGE_APPLIED_COUPON = 'online_store_applied_coupon_v1';
-
-// Strictly deleted categories from store catalog
-const DELETED_CATEGORY_IDS = new Set([
-  'cat-home',
-  'cat-beauty',
-  'cat-toys',
-  'cat-books',
-  'cat-sports',
-  'c382d277-a0e1-4544-96d4-7e0d24af953b',
-  '32b45cf6-7834-487c-8f00-14b5aafb7325',
-  'd0e0e416-e7d5-479f-a0b6-6c40d0e9aa0b',
-  '70b67742-1959-4303-a108-490514df9228',
-  'b68942ba-e1c6-4184-9047-c97198ff0b55',
-  '64d0605e-ef7d-4c8c-9b66-2390fb723978',
-]);
-
-const DELETED_CATEGORY_NAMES = new Set([
-  'home & living',
-  'beauty & personal care',
-  'toys & games',
-  'books & stationery',
-  'sports & fitness',
-  'sports',
-]);
-
-const DELETED_CATEGORY_SLUGS = new Set([
-  'home-living',
-  'beauty',
-  'beauty-personal-care',
-  'toys-games',
-  'books-stationery',
-  'sports-fitness',
-  'sports',
-]);
-
-export function isDeletedCategory(cat: { id?: string; name?: string; slug?: string }): boolean {
-  if (cat.id && DELETED_CATEGORY_IDS.has(cat.id)) return true;
-  if (cat.slug && DELETED_CATEGORY_SLUGS.has(cat.slug.toLowerCase().trim())) return true;
-  if (cat.name && DELETED_CATEGORY_NAMES.has(cat.name.toLowerCase().trim())) return true;
-  return false;
-}
-
-export function isDeletedProduct(p: { category_id?: string; category_name?: string; is_featured?: boolean }): boolean {
-  // Never filter out products that are marked as Favourite / Featured
-  if (Boolean(p.is_featured)) return false;
-  if (p.category_id && DELETED_CATEGORY_IDS.has(p.category_id)) return true;
-  if (p.category_name && DELETED_CATEGORY_NAMES.has(p.category_name.toLowerCase().trim())) return true;
-  return false;
-}
-
-export function sanitizeCategories(rawList: Category[]): Category[] {
-  const seenNames = new Set<string>();
-  const seenSlugs = new Set<string>();
-  const result: Category[] = [];
-
-  for (const cat of rawList) {
-    if (isDeletedCategory(cat)) continue;
-    const normName = (cat.name || '').trim().toLowerCase();
-    const normSlug = (cat.slug || '').trim().toLowerCase();
-    if (seenNames.has(normName) || (normSlug && seenSlugs.has(normSlug))) continue;
-    if (normName) seenNames.add(normName);
-    if (normSlug) seenSlugs.add(normSlug);
-    result.push(cat);
-  }
-  return result;
-}
-
-export function sanitizeProducts(rawList: Product[]): Product[] {
-  return rawList.filter((p) => !isDeletedProduct(p));
-}
 
 const DEFAULT_REVIEWS: Record<string, ProductReview[]> = {
   'prod-iphone15': [
@@ -345,187 +264,75 @@ const DEFAULT_REVIEWS: Record<string, ProductReview[]> = {
   ],
 };
 
-const getInitialPageInfo = (): {
-  page: PageView;
-  productId?: string;
-  categoryId?: string;
-  searchQuery?: string;
-} => {
+const getInitialPage = (): PageView => {
   if (typeof window !== 'undefined') {
     const search = window.location.search.toLowerCase();
-    const pathname = window.location.pathname;
-    const hash = window.location.hash.toLowerCase();
-
     if (search.includes('cf_order_id')) {
-      return { page: 'checkout' };
+      return 'checkout';
     }
     if (
       search.includes('view=admin') ||
       search.includes('page=admin') ||
       search.includes('admin=true') ||
-      search.includes('admin=1') ||
-      pathname === '/admin' ||
-      pathname.startsWith('/admin') ||
+      search.includes('admin=1')
+    ) {
+      return 'admin';
+    }
+    const path = window.location.pathname.toLowerCase();
+    const hash = window.location.hash.toLowerCase();
+    if (
+      path === '/admin' ||
+      path.startsWith('/admin') ||
       hash === '#admin' ||
       hash.startsWith('#admin')
     ) {
-      return { page: 'admin' };
+      return 'admin';
     }
-
-    // Check /product/{product-id} or /product-detail/{product-id}
-    const productMatch = pathname.match(/^\/(?:product|product-detail)\/([a-zA-Z0-9_-]+)/i);
-    if (productMatch && productMatch[1]) {
-      return { page: 'product_detail', productId: productMatch[1] };
-    }
-
-    // Also support query param: ?product={id} or ?productId={id}
-    const urlParams = new URLSearchParams(window.location.search);
-    const queryProdId = urlParams.get('product') || urlParams.get('productId') || urlParams.get('id');
-    if (queryProdId) {
-      return { page: 'product_detail', productId: queryProdId };
-    }
-
-    // Check /category/{category-id}
-    const categoryMatch = pathname.match(/^\/category\/([a-zA-Z0-9_-]+)/i);
-    if (categoryMatch && categoryMatch[1]) {
-      return { page: 'category_products', categoryId: categoryMatch[1] };
-    }
-
-    if (pathname === '/categories' || pathname.startsWith('/categories')) return { page: 'categories' };
-    if (pathname === '/cart' || pathname.startsWith('/cart')) return { page: 'cart' };
-    if (pathname === '/checkout' || pathname.startsWith('/checkout')) return { page: 'checkout' };
-    if (pathname === '/wishlist' || pathname.startsWith('/wishlist')) return { page: 'wishlist' };
-    if (pathname === '/orders' || pathname.startsWith('/orders')) return { page: 'orders' };
-    if (pathname === '/search' || pathname.startsWith('/search')) {
-      const q = urlParams.get('q') || '';
-      return { page: 'search', searchQuery: q };
-    }
-    if (pathname === '/login' || pathname.startsWith('/login')) return { page: 'login' };
-    if (pathname === '/profile' || pathname.startsWith('/profile')) return { page: 'profile' };
-    if (pathname === '/help' || pathname.startsWith('/help')) return { page: 'help' };
-    if (pathname === '/settings' || pathname.startsWith('/settings')) return { page: 'settings' };
-    if (pathname === '/terms' || pathname.startsWith('/terms')) return { page: 'terms' };
-    if (pathname === '/privacy' || pathname.startsWith('/privacy')) return { page: 'privacy' };
   }
-  return { page: 'home' };
+  return 'home';
 };
 
-const getInitialPage = (): PageView => getInitialPageInfo().page;
-
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Theme & Dark Mode State
-  const [themeMode, setThemeModeState] = useState<'light' | 'dark' | 'system'>(() => {
-    try {
-      const saved = localStorage.getItem('zevora_theme_mode') || localStorage.getItem('zevora_theme');
-      if (saved === 'dark' || saved === 'light' || saved === 'system') {
-        return saved as 'light' | 'dark' | 'system';
-      }
-    } catch {}
-    return 'light';
-  });
-
-  const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(() => {
-    if (typeof window !== 'undefined' && window.matchMedia) {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
-    }
-    return false;
-  });
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return;
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = (e: MediaQueryListEvent) => {
-      setSystemPrefersDark(e.matches);
-    };
-    mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
-  }, []);
-
-  const isDarkMode = useMemo(() => {
-    if (themeMode === 'dark') return true;
-    if (themeMode === 'light') return false;
-    return systemPrefersDark;
-  }, [themeMode, systemPrefersDark]);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (isDarkMode) {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-    try {
-      localStorage.setItem('zevora_theme_mode', themeMode);
-      localStorage.setItem('zevora_theme', themeMode);
-    } catch {}
-  }, [isDarkMode, themeMode]);
-
-  const setThemeMode = (mode: 'light' | 'dark' | 'system') => {
-    setThemeModeState(mode);
-  };
-
-  const toggleDarkMode = () => {
-    setThemeModeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  };
-
   // Navigation State
-  const initialNavInfo = useMemo(() => getInitialPageInfo(), []);
-  const [currentPage, setCurrentPage] = useState<PageView>(initialNavInfo.page);
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(initialNavInfo.productId || null);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(initialNavInfo.categoryId || 'cat-mobiles');
-  const [searchQuery, setSearchQuery] = useState<string>(initialNavInfo.searchQuery || '');
+  const [currentPage, setCurrentPage] = useState<PageView>(getInitialPage);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>('prod-iphone15');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>('cat-mobiles');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Base Catalog State (Original database prices preserved untouched)
   const [baseProducts, setBaseProducts] = useState<Product[]>(() => {
+    if (isSupabaseConfigured()) {
+      return [];
+    }
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_PRODUCTS);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const sanitized = sanitizeProducts(parsed);
-          return sanitized.map((p: Product) => {
-            if (p.category_id === 'cat-footwear' || p.category_name === 'Shoes & Footwear') {
-              const positiveStock = Number(p.stock_quantity) > 0 ? Number(p.stock_quantity) : 25;
-              const updatedSpecs = Array.isArray(p.specs)
-                ? p.specs.map((s) => (s.label === 'Stock Status' ? { ...s, value: 'In Stock' } : s))
-                : p.specs;
-              const updatedVariants = Array.isArray(p.variants)
-                ? p.variants.map((v) => ({
-                    ...v,
-                    stock_quantity: Number(v.stock_quantity) > 0 ? Number(v.stock_quantity) : 25,
-                    in_stock: true,
-                  }))
-                : p.variants;
-              return {
-                ...p,
-                in_stock: true,
-                stock_quantity: positiveStock,
-                specs: updatedSpecs,
-                variants: updatedVariants,
-              };
-            }
-            return p;
-          });
+        if (Array.isArray(parsed) && parsed.length >= INITIAL_PRODUCTS.length) {
+          return parsed;
         }
       }
-      return sanitizeProducts(INITIAL_PRODUCTS);
+      return INITIAL_PRODUCTS;
     } catch {
-      return sanitizeProducts(INITIAL_PRODUCTS);
+      return INITIAL_PRODUCTS;
     }
   });
 
   const [categories, setCategories] = useState<Category[]>(() => {
+    if (isSupabaseConfigured()) {
+      return [];
+    }
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_CATEGORIES);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return sanitizeCategories(parsed);
+        if (Array.isArray(parsed) && parsed.length >= INITIAL_CATEGORIES.length) {
+          return parsed;
         }
       }
-      return sanitizeCategories(INITIAL_CATEGORIES);
+      return INITIAL_CATEGORIES;
     } catch {
-      return sanitizeCategories(INITIAL_CATEGORIES);
+      return INITIAL_CATEGORIES;
     }
   });
 
@@ -638,16 +445,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const saved = localStorage.getItem(LOCAL_STORAGE_STORE_SETTINGS);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.store_name) {
-          const merged = { ...DEFAULT_STORE_SETTINGS, ...parsed };
-          if (!merged.logo_url || merged.logo_url.includes('zevora-logo')) {
-            merged.logo_url = DEFAULT_STORE_SETTINGS.logo_url;
-          }
-          if (!merged.favicon_url || merged.favicon_url.includes('zevora-logo')) {
-            merged.favicon_url = DEFAULT_STORE_SETTINGS.favicon_url;
-          }
-          return merged;
-        }
+        if (parsed && parsed.store_name) return { ...DEFAULT_STORE_SETTINGS, ...parsed };
       }
     } catch {}
     return DEFAULT_STORE_SETTINGS;
@@ -660,56 +458,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const tagline = storeSettings.tagline ? ` - ${storeSettings.tagline}` : '';
       document.title = `${titleName}${tagline}`;
 
-      const rawFavicon = storeSettings.favicon_url || '/zevora-header-logo.png';
-      const faviconUrl =
-        rawFavicon.startsWith('http://') ||
-        rawFavicon.startsWith('https://') ||
-        rawFavicon.startsWith('/') ||
-        rawFavicon.startsWith('data:')
-          ? rawFavicon
-          : resolveImageUrl(rawFavicon);
-
-      if (faviconUrl) {
-        // 1. Standard <link rel="icon">
-        let iconLink = document.querySelector<HTMLLinkElement>("link[rel='icon']:not([sizes])") ||
-                       document.querySelector<HTMLLinkElement>("link[rel='icon']");
-        if (!iconLink) {
-          iconLink = document.createElement('link');
-          iconLink.rel = 'icon';
-          document.head.appendChild(iconLink);
+      if (storeSettings.favicon_url) {
+        let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'icon';
+          document.head.appendChild(link);
         }
-        iconLink.href = faviconUrl;
-        if (faviconUrl.endsWith('.png')) {
-          iconLink.type = 'image/png';
-        } else if (faviconUrl.endsWith('.svg')) {
-          iconLink.type = 'image/svg+xml';
-        } else if (faviconUrl.endsWith('.ico')) {
-          iconLink.type = 'image/x-icon';
-        }
-
-        // 2. Shortcut icon
-        let shortcutLink = document.querySelector<HTMLLinkElement>("link[rel='shortcut icon']");
-        if (!shortcutLink) {
-          shortcutLink = document.createElement('link');
-          shortcutLink.rel = 'shortcut icon';
-          document.head.appendChild(shortcutLink);
-        }
-        shortcutLink.href = faviconUrl;
-
-        // 3. Apple touch icon
-        let appleLink = document.querySelector<HTMLLinkElement>("link[rel='apple-touch-icon']");
-        if (!appleLink) {
-          appleLink = document.createElement('link');
-          appleLink.rel = 'apple-touch-icon';
-          document.head.appendChild(appleLink);
-        }
-        appleLink.href = faviconUrl;
-
-        // 4. Update any existing sized icon links so browsers don't favor older icons
-        const sizedIcons = document.querySelectorAll<HTMLLinkElement>("link[rel='icon'][sizes]");
-        sizedIcons.forEach((el) => {
-          el.href = faviconUrl;
-        });
+        link.href = storeSettings.favicon_url;
       }
     }
   }, [storeSettings.store_name, storeSettings.tagline, storeSettings.favicon_url]);
@@ -1037,26 +793,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch {}
   }, [user]);
 
-  // One-time cleanup of any legacy cached deleted categories or products from localStorage
-  useEffect(() => {
-    try {
-      const savedCats = localStorage.getItem(LOCAL_STORAGE_CATEGORIES);
-      if (savedCats) {
-        const parsed = JSON.parse(savedCats);
-        if (Array.isArray(parsed)) {
-          localStorage.setItem(LOCAL_STORAGE_CATEGORIES, JSON.stringify(sanitizeCategories(parsed)));
-        }
-      }
-      const savedProds = localStorage.getItem(LOCAL_STORAGE_PRODUCTS);
-      if (savedProds) {
-        const parsed = JSON.parse(savedProds);
-        if (Array.isArray(parsed)) {
-          localStorage.setItem(LOCAL_STORAGE_PRODUCTS, JSON.stringify(sanitizeProducts(parsed)));
-        }
-      }
-    } catch {}
-  }, []);
-
   // Load real data from existing Supabase database
   const refreshCatalog = async () => {
     const supabase = getSupabase();
@@ -1067,7 +803,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // 1. Fetch categories directly from Supabase categories table
       const { data: catData, error: catError } = await supabase.from('categories').select('*').order('created_at');
       let catMap = new Map<string, string>();
-      if (!catError && catData && catData.length > 0) {
+      if (!catError && catData) {
         catMap = new Map(catData.map((c: any) => [c.id, c.name]));
         const formattedCats: Category[] = catData.map((c: any) => ({
           id: c.id,
@@ -1080,163 +816,27 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           product_count: Number(c.product_count) || 0,
           image_url: c.image_url || '',
         }));
-        setCategories(sanitizeCategories(formattedCats));
-      } else {
-        setCategories((prev) => sanitizeCategories(prev.length > 0 ? prev : INITIAL_CATEGORIES));
+        setCategories(formattedCats);
       }
 
-      // 2. Fetch products directly from Supabase products table (with API fallback)
-      let prodData: any[] | null = null;
-      let prodError: any = null;
-      try {
-        const res = await supabase
-          .from('products')
-          .select('*')
-          .order('created_at', { ascending: false });
-        prodData = res.data;
-        prodError = res.error;
-      } catch (e) {
-        prodError = e;
-      }
-
-      // Fallback to server endpoint /api/products if direct client query had error or returned empty
-      if (prodError || !prodData || prodData.length === 0) {
-        try {
-          const apiRes = await fetch('/api/products');
-          if (apiRes.ok) {
-            const apiJson = await apiRes.json();
-            if (apiJson.success && Array.isArray(apiJson.products) && apiJson.products.length > 0) {
-              prodData = apiJson.products;
-              prodError = null;
-            }
-          }
-        } catch {}
-      }
-
-      if (!prodError && prodData && prodData.length > 0) {
+      // 2. Fetch products directly from Supabase products table (NO demo fallback merging)
+      const { data: prodData, error: prodError } = await supabase.from('products').select('*').order('created_at');
+      if (!prodError && prodData) {
         const formattedProds: Product[] = prodData.map((p: any) => {
           let formattedSpecs: { label: string; value: string }[] = [];
-          const rawSpecs = p.specs;
-
-          if (Array.isArray(rawSpecs)) {
-            formattedSpecs = rawSpecs;
-          } else if (rawSpecs && typeof rawSpecs === 'object') {
-            if (Array.isArray(rawSpecs.items)) {
-              formattedSpecs = rawSpecs.items;
-            } else {
-              formattedSpecs = Object.entries(rawSpecs)
-                .filter(([k]) => !['variants', 'colors', 'sizes', 'size_chart', 'brand', 'sku', 'subcategory', 'color_variants', 'featured_at'].includes(k))
-                .map(([label, value]) => ({
-                  label,
-                  value: typeof value === 'object' ? JSON.stringify(value) : String(value),
-                }));
-            }
-          }
-
-          // Extract featured_at timestamp if present
-          let featuredAt: string | undefined = undefined;
-          if (rawSpecs && typeof rawSpecs === 'object' && !Array.isArray(rawSpecs) && rawSpecs.featured_at) {
-            featuredAt = String(rawSpecs.featured_at);
-          } else if (Array.isArray(rawSpecs)) {
-            const match = rawSpecs.find((s: any) => s && s.label === 'featured_at');
-            if (match) featuredAt = String(match.value);
-          }
-          if (!featuredAt && Boolean(p.is_featured)) {
-            featuredAt = p.created_at;
+          if (Array.isArray(p.specs)) {
+            formattedSpecs = p.specs;
+          } else if (p.specs && typeof p.specs === 'object') {
+            formattedSpecs = Object.entries(p.specs).map(([label, value]) => ({
+              label,
+              value: String(value),
+            }));
           }
 
           const price = Number(p.price) || 0;
           const originalPrice = Number(p.original_price ?? p.mrp ?? p.price) || price;
-          const resolvedCategoryName = p.category_name || catMap.get(p.category_id) || 'General';
-          const isFootwearCategory =
-            resolvedCategoryName === 'Shoes & Footwear' || p.category_id === 'cat-footwear';
-          const rawStockQty = Number(p.stock_quantity ?? p.stock ?? 0);
-          const stockQty = isFootwearCategory ? (rawStockQty > 0 ? rawStockQty : 25) : rawStockQty;
-          const inStock = isFootwearCategory
-            ? true
-            : p.in_stock !== undefined
-              ? Boolean(p.in_stock)
-              : stockQty > 0;
-
-          if (isFootwearCategory && Array.isArray(formattedSpecs)) {
-            formattedSpecs = formattedSpecs.map((s) =>
-              s.label === 'Stock Status' ? { ...s, value: 'In Stock' } : s
-            );
-          }
-
-          // Parse variants from p.variants or p.specs?.variants
-          let parsedVariants: ProductVariant[] = [];
-          if (Array.isArray(p.variants)) {
-            parsedVariants = p.variants;
-          } else if (rawSpecs && typeof rawSpecs === 'object' && Array.isArray(rawSpecs.variants)) {
-            parsedVariants = rawSpecs.variants;
-          } else if (typeof p.variants === 'string') {
-            try { parsedVariants = JSON.parse(p.variants); } catch {}
-          }
-
-          if (isFootwearCategory && parsedVariants.length > 0) {
-            parsedVariants = parsedVariants.map((v) => ({
-              ...v,
-              stock_quantity: Number(v.stock_quantity) > 0 ? Number(v.stock_quantity) : 25,
-              in_stock: true,
-            }));
-          }
-
-          // Parse colors
-          let rawColors = Array.isArray(p.colors)
-            ? p.colors
-            : (rawSpecs && typeof rawSpecs === 'object' && Array.isArray(rawSpecs.colors)
-              ? rawSpecs.colors
-              : (typeof p.colors === 'string' ? JSON.parse(p.colors || '[]') : []));
-
-          if (rawColors.length === 0 && parsedVariants.length > 0) {
-            const uniqueColors = Array.from(new Set(parsedVariants.map((v) => v.color).filter(Boolean)));
-            rawColors = uniqueColors.map((cName) => {
-              const match = parsedVariants.find((v) => v.color === cName);
-              return { name: cName as string, hex: match?.color_hex || '#0f172a' };
-            });
-          }
-
-          const parsedColors: ColorVariant[] = rawColors.map((c: any) => {
-            if (typeof c === 'string') {
-              const preset = PRESET_COLORS.find((pr) => pr.name.toLowerCase() === c.toLowerCase());
-              return { name: c, hex: preset?.hex || '#2563eb' };
-            }
-            if (c && typeof c === 'object') {
-              const name = c.name || c.color || 'Color';
-              const preset = PRESET_COLORS.find((pr) => pr.name.toLowerCase() === name.toLowerCase());
-              return { name, hex: c.hex || preset?.hex || '#2563eb' };
-            }
-            return { name: String(c), hex: '#2563eb' };
-          });
-
-          // Parse sizes
-          let parsedSizes = Array.isArray(p.sizes)
-            ? p.sizes
-            : (rawSpecs && typeof rawSpecs === 'object' && Array.isArray(rawSpecs.sizes)
-              ? rawSpecs.sizes
-              : (typeof p.sizes === 'string' ? JSON.parse(p.sizes || '[]') : []));
-
-          if (parsedSizes.length === 0 && parsedVariants.length > 0) {
-            parsedSizes = Array.from(new Set(parsedVariants.map((v) => v.size).filter(Boolean))) as string[];
-          }
-
-          const parsedSizeChart = p.size_chart || (rawSpecs && typeof rawSpecs === 'object' ? rawSpecs.size_chart : undefined);
-          const parsedColorVariants = p.color_variants || (rawSpecs && typeof rawSpecs === 'object' ? rawSpecs.color_variants : undefined);
-          const brand = p.brand || (rawSpecs && typeof rawSpecs === 'object' ? rawSpecs.brand : 'Zevora');
-          const sku = (rawSpecs && typeof rawSpecs === 'object' ? rawSpecs.sku : undefined);
-          const subcategory = (rawSpecs && typeof rawSpecs === 'object' ? rawSpecs.subcategory : undefined);
-
-          let productCategoryIds: string[] = [];
-          if (Array.isArray(p.category_ids) && p.category_ids.length > 0) {
-            productCategoryIds = p.category_ids;
-          } else if (rawSpecs && typeof rawSpecs === 'object' && Array.isArray(rawSpecs.category_ids) && rawSpecs.category_ids.length > 0) {
-            productCategoryIds = rawSpecs.category_ids;
-          } else if (p.category_id) {
-            productCategoryIds = [p.category_id];
-          }
-
-          const resolvedCategoryNames = productCategoryIds.map((cid) => catMap.get(cid) || cid);
+          const stockQty = Number(p.stock_quantity ?? p.stock ?? 0);
+          const inStock = p.in_stock !== undefined ? Boolean(p.in_stock) : stockQty > 0;
 
           return {
             id: p.id,
@@ -1244,8 +844,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             description: p.description || '',
             category_id: p.category_id,
             category_name: p.category_name || catMap.get(p.category_id) || 'General',
-            category_ids: productCategoryIds,
-            category_names: resolvedCategoryNames,
             price,
             original_price: originalPrice,
             discount_percent: Number(p.discount_percent) || 0,
@@ -1255,27 +853,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             in_stock: inStock,
             images: Array.isArray(p.images) ? p.images : (typeof p.images === 'string' ? JSON.parse(p.images || '[]') : []),
             specs: formattedSpecs,
-            colors: parsedColors,
-            sizes: parsedSizes,
-            brand: brand,
-            sku: sku,
-            subcategory: subcategory,
-            variants: parsedVariants,
-            color_variants: parsedColorVariants,
-            size_chart: parsedSizeChart,
+            colors: Array.isArray(p.colors) ? p.colors : (typeof p.colors === 'string' ? JSON.parse(p.colors || '[]') : []),
+            sizes: Array.isArray(p.sizes) ? p.sizes : (typeof p.sizes === 'string' ? JSON.parse(p.sizes || '[]') : []),
             is_featured: Boolean(p.is_featured),
-            featured_at: featuredAt,
             is_deal: Boolean(p.is_deal),
             created_at: p.created_at,
           };
         });
-        const sanitized = sanitizeProducts(formattedProds);
-        setBaseProducts(sanitized);
-        try {
-          localStorage.setItem(LOCAL_STORAGE_PRODUCTS, JSON.stringify(sanitized));
-        } catch {}
-      } else {
-        setBaseProducts((prev) => sanitizeProducts(prev.length > 0 ? prev : INITIAL_PRODUCTS));
+        setBaseProducts(formattedProds);
       }
 
       // 3. Fetch orders from Supabase orders table
@@ -1393,8 +978,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setIsSupabaseConnected(true);
     } catch (err) {
       console.warn('Supabase fetch issue:', err);
-      setCategories((prev) => (prev.length > 0 ? prev : INITIAL_CATEGORIES));
-      setBaseProducts((prev) => (prev.length > 0 ? prev : INITIAL_PRODUCTS));
     } finally {
       setIsLoading(false);
     }
@@ -1437,26 +1020,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, []);
 
-  // Real-time synchronization for offers and products from Supabase
+  // Real-time synchronization for offers from Supabase
   useEffect(() => {
     const supabase = getSupabase();
     if (!supabase) return;
 
     try {
       const channel = supabase
-        .channel('realtime_store_sync')
+        .channel('realtime_offers_sync')
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'offers' },
           () => {
             refreshOffers();
-          }
-        )
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'products' },
-          () => {
-            refreshCatalog();
           }
         )
         .subscribe();
@@ -1465,9 +1041,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         supabase.removeChannel(channel);
       };
     } catch (realtimeErr) {
-      console.warn('Realtime sync subscription note:', realtimeErr);
+      console.warn('Realtime offers subscription note:', realtimeErr);
     }
-  }, [isSupabaseConnected]);
+  }, []);
 
   // Load profile linked to authenticated Supabase user
   const loadUserProfile = async (authUser: any) => {
@@ -1562,15 +1138,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Synchronize route if user navigates via browser history or URL changes
   useEffect(() => {
     const handleUrlChange = () => {
-      const info = getInitialPageInfo();
-      setSelectedProductId(info.productId || null);
-      setSelectedCategoryId(info.categoryId || null);
-      if (info.searchQuery !== undefined) {
-        setSearchQuery(info.searchQuery);
-      } else if (info.page !== 'search') {
-        setSearchQuery('');
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      const search = window.location.search.toLowerCase();
+      if (
+        path === '/admin' ||
+        path.startsWith('/admin') ||
+        hash === '#admin' ||
+        hash.startsWith('#admin') ||
+        search.includes('view=admin') ||
+        search.includes('page=admin') ||
+        search.includes('admin=true')
+      ) {
+        setCurrentPage('admin');
+      } else if (currentPage === 'admin' && path !== '/admin' && !hash.includes('admin') && !search.includes('admin')) {
+        setCurrentPage('home');
       }
-      setCurrentPage(info.page);
     };
 
     window.addEventListener('popstate', handleUrlChange);
@@ -1579,7 +1162,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       window.removeEventListener('popstate', handleUrlChange);
       window.removeEventListener('hashchange', handleUrlChange);
     };
-  }, []);
+  }, [currentPage]);
 
   // Navigation helper
   const navigateTo = (page: PageView, options?: { productId?: string; categoryId?: string; searchQuery?: string }) => {
@@ -1589,44 +1172,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setCurrentPage(page);
 
-    // Sync window history with proper route
-    let targetUrl = '/';
+    // Sync window history
     if (page === 'admin') {
-      targetUrl = '/admin';
-    } else if (page === 'product_detail' && options?.productId) {
-      targetUrl = `/product/${options.productId}`;
-    } else if (page === 'category_products' && options?.categoryId) {
-      targetUrl = `/category/${options.categoryId}`;
-    } else if (page === 'categories') {
-      targetUrl = '/categories';
-    } else if (page === 'cart') {
-      targetUrl = '/cart';
-    } else if (page === 'checkout') {
-      targetUrl = '/checkout';
-    } else if (page === 'wishlist') {
-      targetUrl = '/wishlist';
-    } else if (page === 'orders') {
-      targetUrl = '/orders';
-    } else if (page === 'search') {
-      targetUrl = options?.searchQuery ? `/search?q=${encodeURIComponent(options.searchQuery)}` : '/search';
-    } else if (page === 'login') {
-      targetUrl = '/login';
-    } else if (page === 'profile') {
-      targetUrl = '/profile';
-    } else if (page === 'help') {
-      targetUrl = '/help';
-    } else if (page === 'settings') {
-      targetUrl = '/settings';
-    } else if (page === 'terms') {
-      targetUrl = '/terms';
-    } else if (page === 'privacy') {
-      targetUrl = '/privacy';
+      window.history.pushState({}, '', '/admin');
     } else {
-      targetUrl = '/';
-    }
-
-    if (typeof window !== 'undefined' && window.location.pathname !== targetUrl) {
-      window.history.pushState({ page, productId: options?.productId, categoryId: options?.categoryId }, '', targetUrl);
+      window.history.pushState({}, '', '/');
     }
 
     // Scroll to top
@@ -1634,19 +1184,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // Cart operations
-  const addToCart = (
-    product: Product,
-    quantity = 1,
-    color?: string,
-    size?: string,
-    variant?: ProductVariant | null
-  ) => {
-    // Check variant stock if provided
-    if (variant && variant.stock_quantity <= 0) {
-      showToast(`${product.name} (${[color, size].filter(Boolean).join(' • ')}) is Out of Stock.`, 'error');
-      return;
-    }
-
+  const addToCart = (product: Product, quantity = 1, color?: string, size?: string) => {
     if (!product.in_stock || product.stock_quantity <= 0) {
       showToast(`${product.name} is Out of Stock and cannot be purchased.`, 'error');
       return;
@@ -1676,16 +1214,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         quantity,
         selected_color: color || product.colors?.[0]?.name,
         selected_size: size || product.sizes?.[0],
-        selected_variant_id: variant?.id,
-        selected_variant_sku: variant?.sku,
-        variant_price: variant?.price,
-        variant_original_price: variant?.original_price,
       };
       return [...prev, newItem];
     });
 
-    const variantDesc = [color, size].filter(Boolean).join(' • ');
-    showToast(`Added ${product.name}${variantDesc ? ` (${variantDesc})` : ''} to cart`, 'success');
+    showToast(`Added ${product.name} to cart`, 'success');
   };
 
   const removeFromCart = (cartItemId: string) => {
@@ -1707,22 +1240,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCart([]);
   };
 
-  // Derived syncedCart: dynamically syncs cart items with current active product offer pricing & variants
+  // Derived syncedCart: dynamically syncs cart items with current active product offer pricing
   const syncedCart = useMemo(() => {
     return cart.map((item) => {
       const activeProd = products.find((p) => p.id === item.product_id);
       if (activeProd) {
-        const v = activeProd.variants?.find(
-          (varItem) =>
-            (item.selected_variant_id && varItem.id === item.selected_variant_id) ||
-            ((!item.selected_color || varItem.color === item.selected_color) &&
-              (!item.selected_size || varItem.size === item.selected_size))
-        );
         return {
           ...item,
           product: activeProd,
-          variant_price: v?.price ?? item.variant_price,
-          variant_original_price: v?.original_price ?? item.variant_original_price,
         };
       }
       return item;
@@ -1731,19 +1256,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const cartCount = syncedCart.reduce((sum, item) => sum + item.quantity, 0);
   const cartSubtotal = syncedCart.reduce(
-    (sum, item) =>
-      sum +
-      (item.variant_original_price ??
-        item.product.original_price ??
-        item.variant_price ??
-        item.product.price) *
-        item.quantity,
+    (sum, item) => sum + (item.product.original_price || item.product.price) * item.quantity,
     0
   );
-  const cartItemsDiscountedTotal = syncedCart.reduce(
-    (sum, item) => sum + (item.variant_price ?? item.product.price) * item.quantity,
-    0
-  );
+  const cartItemsDiscountedTotal = syncedCart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const cartOfferDiscount = Math.max(0, cartSubtotal - cartItemsDiscountedTotal);
 
   // Validate applied coupon dynamically against current cart
@@ -1907,15 +1423,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         product_id: item.product_id,
         product_name: item.product.name,
         product_image: item.product.images[0] || '',
-        price: item.variant_price ?? item.product.price,
-        original_price: item.variant_original_price ?? item.product.original_price ?? item.product.price,
-        discount_amount: Math.max(0, (item.variant_original_price ?? item.product.original_price ?? item.product.price) - (item.variant_price ?? item.product.price)),
+        price: item.product.price,
+        original_price: item.product.original_price || item.product.price,
+        discount_amount: Math.max(0, (item.product.original_price || item.product.price) - item.product.price),
         discount_percent: item.product.discount_percent || 0,
         quantity: item.quantity,
         color: item.selected_color,
         size: item.selected_size,
-        variant_sku: item.selected_variant_sku,
-        variant_id: item.selected_variant_id,
       })),
       subtotal: finalSubtotal,
       discount_amount: finalDisc,
@@ -1975,78 +1489,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             );
           } catch (itemErr) {
             console.warn('Order items insert note:', itemErr);
-          }
-        }
-      }
-    }
-
-    // Automatically decrement stock for each purchased item & variant
-    for (const it of syncedCart) {
-      const prod = products.find((p) => p.id === it.product_id);
-      if (prod) {
-        let updatedVariants = prod.variants ? [...prod.variants] : [];
-        if (updatedVariants.length > 0) {
-          updatedVariants = updatedVariants.map((v) => {
-            const isMatch =
-              (it.selected_variant_id && v.id === it.selected_variant_id) ||
-              ((!it.selected_color || (v.color || '').toLowerCase() === it.selected_color.toLowerCase()) &&
-               (!it.selected_size || (v.size || '').toLowerCase() === it.selected_size.toLowerCase()));
-            if (isMatch) {
-              const newVarStock = Math.max(0, (Number(v.stock_quantity) || 0) - it.quantity);
-              return {
-                ...v,
-                stock_quantity: newVarStock,
-                in_stock: newVarStock > 0,
-              };
-            }
-            return v;
-          });
-        }
-
-        const newBaseStock = Math.max(0, (Number(prod.stock_quantity) || 0) - it.quantity);
-        const newInStock = updatedVariants.length > 0
-          ? updatedVariants.some((v) => (Number(v.stock_quantity) || 0) > 0)
-          : newBaseStock > 0;
-
-        setBaseProducts((prev) =>
-          prev.map((p) =>
-            p.id === prod.id
-              ? {
-                  ...p,
-                  stock_quantity: newBaseStock,
-                  in_stock: newInStock,
-                  variants: updatedVariants,
-                }
-              : p
-          )
-        );
-
-        if (isSupabaseConfigured()) {
-          const supabase = getSupabase();
-          if (supabase) {
-            const rawSpecs: any = prod.specs;
-            const updatedSpecsPayload = typeof rawSpecs === 'object' && rawSpecs !== null && !Array.isArray(rawSpecs)
-              ? { ...(rawSpecs as Record<string, any>), variants: updatedVariants }
-              : { items: Array.isArray(rawSpecs) ? rawSpecs : [], variants: updatedVariants };
-
-            try {
-              const query = supabase
-                .from('products')
-                .update({
-                  stock: newBaseStock,
-                  specs: updatedSpecsPayload,
-                })
-                .eq('id', prod.id);
-
-              if (query && typeof (query as any).then === 'function') {
-                (query as any).then(
-                  () => {},
-                  (err: any) => console.warn('Supabase stock decrement notice:', err)
-                );
-              }
-            } catch (err) {
-              console.warn('Supabase stock decrement notice:', err);
-            }
           }
         }
       }
@@ -2370,41 +1812,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ? [(productData as any).image_url]
       : ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&q=80'];
 
-    // Rich specifications bundle (variants, colors, sizes, size_chart, brand, sku) inside specs JSONB column
-    const specsItems = Array.isArray(productData.specs)
-      ? productData.specs
-      : (productData.specs && typeof productData.specs === 'object' && Array.isArray((productData.specs as any).items)
-        ? (productData.specs as any).items
-        : [{ label: 'Brand', value: productData.brand || 'Zevora' }]);
-
-    // Resolve multiple categories
-    const rawCatIds: string[] = Array.isArray((productData as any).category_ids) && (productData as any).category_ids.length > 0
-      ? (productData as any).category_ids
-      : [validCatId].filter(Boolean);
-
-    const resolvedCatIds = rawCatIds.map((cid: string) => {
-      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cid)) return cid;
-      const found = categories.find((c) => c.id === cid || c.slug === cid || c.name.toLowerCase() === cid.toLowerCase());
-      return found?.id || cid;
-    });
-
-    const primaryCatId = resolvedCatIds[0] || validCatId;
-    const catNames = resolvedCatIds.map((cid: string) => categories.find((c) => c.id === cid)?.name || cid);
-
-    const richSpecs = {
-      items: specsItems,
-      variants: productData.variants || [],
-      colors: productData.colors || [],
-      sizes: productData.sizes || [],
-      size_chart: productData.size_chart || null,
-      brand: productData.brand || 'Zevora',
-      sku: productData.sku || '',
-      subcategory: productData.subcategory || '',
-      color_variants: productData.color_variants || [],
-      category_ids: resolvedCatIds,
-      category_names: catNames,
-    };
-
     // EXACT Supabase products table columns: id, name, description, price, mrp, discount_percent, stock, category_id, images, rating, rating_count, brand, is_featured, specs
     // Absolutely NO category_name column (matches real Supabase schema cache)
     const dbPayload = {
@@ -2415,14 +1822,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       mrp: mrp,
       discount_percent: discount,
       stock: stock,
-      category_id: primaryCatId,
-      category_ids: resolvedCatIds,
+      category_id: validCatId,
       images: images,
       rating: Number(productData.rating) || 4.7,
       rating_count: Number(productData.review_count ?? (productData as any).rating_count ?? 1),
-      brand: productData.brand || 'Zevora',
+      brand: (productData as any).brand || 'General',
       is_featured: Boolean(productData.is_featured),
-      specs: richSpecs,
+      specs: Array.isArray(productData.specs) || typeof productData.specs === 'object'
+        ? productData.specs
+        : [{ label: 'Standard', value: 'Original' }],
     };
 
     let savedSuccessfully = false;
@@ -2447,8 +1855,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!savedSuccessfully && isSupabaseConfigured()) {
       const supabase = getSupabase();
       if (supabase) {
-        const { category_ids, ...directPayload } = dbPayload;
-        const { error } = await supabase.from('products').insert([directPayload]);
+        const { error } = await supabase.from('products').insert([dbPayload]);
         if (error) {
           showToast(`Failed to add product to Supabase: ${error.message}`, 'error');
           return false;
@@ -2457,14 +1864,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
-    const catName = categories.find((c) => c.id === primaryCatId)?.name || productData.category_name || 'General';
+    const catName = categories.find((c) => c.id === validCatId)?.name || productData.category_name || 'General';
     const newProduct: Product = {
       ...productData,
       id: newId,
-      category_id: primaryCatId,
+      category_id: validCatId,
       category_name: catName,
-      category_ids: resolvedCatIds,
-      category_names: catNames,
       price: dbPayload.price,
       original_price: dbPayload.mrp,
       discount_percent: dbPayload.discount_percent,
@@ -2473,15 +1878,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       rating: dbPayload.rating,
       review_count: dbPayload.rating_count,
       images: dbPayload.images,
-      specs: specsItems,
-      brand: richSpecs.brand,
-      sku: richSpecs.sku,
-      subcategory: richSpecs.subcategory,
-      variants: richSpecs.variants,
-      colors: richSpecs.colors,
-      sizes: richSpecs.sizes,
-      size_chart: richSpecs.size_chart || undefined,
-      color_variants: richSpecs.color_variants,
+      specs: Array.isArray(dbPayload.specs) ? dbPayload.specs : [],
       created_at: new Date().toISOString(),
     };
 
@@ -2501,18 +1898,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
-    let resolvedCatIds: string[] = [];
-    if (updates.category_ids !== undefined) {
-      resolvedCatIds = updates.category_ids.map((cid: string) => {
-        if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cid)) return cid;
-        const found = categories.find((c) => c.id === cid || c.slug === cid || c.name.toLowerCase() === cid.toLowerCase());
-        return found?.id || cid;
-      });
-      if (resolvedCatIds.length > 0) {
-        validCatId = resolvedCatIds[0];
-      }
-    }
-
     const dbUpdates: any = {};
     if (updates.name !== undefined) dbUpdates.name = String(updates.name).trim();
     if (updates.description !== undefined) dbUpdates.description = String(updates.description).trim();
@@ -2525,48 +1910,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       dbUpdates.stock = Number(updates.stock_quantity ?? (updates as any).stock);
     }
     if (validCatId !== undefined) dbUpdates.category_id = validCatId;
-    if (resolvedCatIds.length > 0) dbUpdates.category_ids = resolvedCatIds;
     if (updates.images !== undefined) dbUpdates.images = updates.images;
     if (updates.rating !== undefined) dbUpdates.rating = Number(updates.rating);
     if (updates.review_count !== undefined || (updates as any).rating_count !== undefined) {
       dbUpdates.rating_count = Number(updates.review_count ?? (updates as any).rating_count);
     }
     if ((updates as any).brand !== undefined) dbUpdates.brand = (updates as any).brand;
-    if (updates.is_featured !== undefined) {
-      dbUpdates.is_featured = Boolean(updates.is_featured);
-      if (updates.is_featured) {
-        dbUpdates.featured_at = (updates as any).featured_at || new Date().toISOString();
-      }
-    }
+    if (updates.is_featured !== undefined) dbUpdates.is_featured = Boolean(updates.is_featured);
     if (updates.specs !== undefined) dbUpdates.specs = updates.specs;
-
-    const existingProd = baseProducts.find((p) => p.id === id);
-    const prevSpecs = existingProd?.specs;
-    const specsItems = Array.isArray(prevSpecs)
-      ? prevSpecs
-      : (prevSpecs && typeof prevSpecs === 'object' && Array.isArray((prevSpecs as any).items)
-        ? (prevSpecs as any).items
-        : []);
-
-    const finalCatIdsForSpecs = resolvedCatIds.length > 0
-      ? resolvedCatIds
-      : (existingProd?.category_ids || (existingProd?.category_id ? [existingProd.category_id] : []));
-    const finalCatNamesForSpecs = finalCatIdsForSpecs.map((cid) => categories.find((c) => c.id === cid)?.name || cid);
-
-    dbUpdates.specs = {
-      items: updates.specs !== undefined && Array.isArray(updates.specs) ? updates.specs : specsItems,
-      variants: updates.variants !== undefined ? updates.variants : (existingProd?.variants || []),
-      colors: updates.colors !== undefined ? updates.colors : (existingProd?.colors || []),
-      sizes: updates.sizes !== undefined ? updates.sizes : (existingProd?.sizes || []),
-      size_chart: updates.size_chart !== undefined ? updates.size_chart : (existingProd?.size_chart || null),
-      brand: updates.brand !== undefined ? updates.brand : (existingProd?.brand || 'Zevora'),
-      sku: updates.sku !== undefined ? updates.sku : (existingProd?.sku || ''),
-      subcategory: updates.subcategory !== undefined ? updates.subcategory : (existingProd?.subcategory || ''),
-      color_variants: updates.color_variants !== undefined ? updates.color_variants : (existingProd?.color_variants || []),
-      category_ids: finalCatIdsForSpecs,
-      category_names: finalCatNamesForSpecs,
-      ...(typeof dbUpdates.specs === 'object' && !Array.isArray(dbUpdates.specs) ? dbUpdates.specs : {}),
-    };
 
     // Never include category_name in dbUpdates
     let updatedRemotely = false;
@@ -2585,8 +1936,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!updatedRemotely && isSupabaseConfigured() && Object.keys(dbUpdates).length > 0) {
       const supabase = getSupabase();
       if (supabase) {
-        const { category_ids, ...directPayload } = dbUpdates;
-        const { error } = await supabase.from('products').update(directPayload).eq('id', id);
+        const { error } = await supabase.from('products').update(dbUpdates).eq('id', id);
         if (error) {
           showToast(`Failed to update product in Supabase: ${error.message}`, 'error');
           return false;
@@ -2594,43 +1944,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
-    setBaseProducts((prev) => {
-      const updated = prev.map((p) => {
+    setBaseProducts((prev) =>
+      prev.map((p) => {
         if (p.id !== id) return p;
         const newCatId = validCatId || p.category_id;
-        const finalCatIds = resolvedCatIds.length > 0
-          ? resolvedCatIds
-          : (p.category_ids && p.category_ids.length > 0 ? p.category_ids : [newCatId]);
-        const finalCatNames = finalCatIds.map((cid: string) => categories.find((c) => c.id === cid)?.name || cid);
         const newCatName = categories.find((c) => c.id === newCatId)?.name || p.category_name;
-        const mergedSpecs = dbUpdates.specs
-          ? (typeof p.specs === 'object' && !Array.isArray(p.specs) ? { ...(p.specs as Record<string, any>), ...dbUpdates.specs } : p.specs)
-          : p.specs;
-        const isFeaturedVal = updates.is_featured !== undefined ? Boolean(updates.is_featured) : p.is_featured;
-        const featuredAtVal = updates.is_featured !== undefined
-          ? (updates.is_featured ? (dbUpdates.featured_at || new Date().toISOString()) : undefined)
-          : p.featured_at;
         return {
           ...p,
           ...updates,
-          specs: mergedSpecs,
-          is_featured: isFeaturedVal,
-          featured_at: featuredAtVal,
           category_id: newCatId,
           category_name: newCatName,
-          category_ids: finalCatIds,
-          category_names: finalCatNames,
         };
-      });
-      try {
-        localStorage.setItem(LOCAL_STORAGE_PRODUCTS, JSON.stringify(sanitizeProducts(updated)));
-      } catch {}
-      return updated;
-    });
-
-    // Invalidate and refetch catalog to ensure persistent 100% sync with Supabase
-    await refreshCatalog().catch(() => {});
-
+      })
+    );
     showToast('Product updated successfully', 'success');
     return true;
   };
@@ -2715,7 +2041,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         showToast('Database connection unavailable', 'error');
         return false;
       }
-      await supabase.from('products').delete().eq('category_id', id);
       const { error } = await supabase.from('categories').delete().eq('id', id);
       if (error) {
         showToast(`Failed to delete category from Supabase: ${error.message}`, 'error');
@@ -2724,7 +2049,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     setCategories((prev) => prev.filter((c) => c.id !== id));
-    setBaseProducts((prev) => prev.filter((p) => p.category_id !== id));
     showToast('Category deleted', 'info');
     return true;
   };
@@ -2758,10 +2082,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       localStorage.setItem(LOCAL_STORAGE_OFFERS, JSON.stringify(updated));
       return updated;
     });
-    const toastMsg = newOffer.title?.trim()
-      ? `Offer "${newOffer.title}" created successfully!`
-      : 'Offer banner created successfully!';
-    showToast(toastMsg, 'success');
+    showToast(`Offer "${newOffer.title}" created successfully!`, 'success');
     return true;
   };
 
@@ -3167,10 +2488,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         toggleCouponActive,
         toast,
         showToast,
-        themeMode,
-        isDarkMode,
-        setThemeMode,
-        toggleDarkMode,
       }}
     >
       {children}

@@ -3,9 +3,6 @@ import { useStore } from '../context/StoreContext';
 import { Product, Category, OrderStatus, Order, Offer, Coupon, StoreSettings } from '../types';
 import { uploadProductImageToSupabase, uploadBannerImageToSupabase } from '../lib/supabase';
 import { generateSupabaseDemoSeedSql } from '../data/supabaseSeedSql';
-import { ProductVariantDashboard } from '../components/ProductVariantDashboard';
-import { AdminErrorBoundary } from '../components/AdminErrorBoundary';
-import { MultiCategorySelector } from '../components/MultiCategorySelector';
 import {
   ShieldCheck,
   Package,
@@ -87,9 +84,7 @@ export const AdminView: React.FC = () => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Dashboard active tab
-  const [activeTab, setActiveTab] = useState<'products' | 'variant_manager' | 'categories' | 'offers' | 'orders' | 'customers' | 'coupons' | 'settings' | 'database'>('products');
-  const [productCategoryFilter, setProductCategoryFilter] = useState('all');
-  const [productStockFilter, setProductStockFilter] = useState<'all' | 'in_stock' | 'out_of_stock'>('all');
+  const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'offers' | 'orders' | 'customers' | 'coupons' | 'settings' | 'database'>('products');
 
   // Modals & Forms
   const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -104,7 +99,6 @@ export const AdminView: React.FC = () => {
     name: '',
     description: '',
     category_id: categories[0]?.id || '',
-    category_ids: (categories[0]?.id ? [categories[0].id] : []) as string[],
     price: 0,
     original_price: 0,
     discount_percent: 0,
@@ -114,7 +108,6 @@ export const AdminView: React.FC = () => {
     images: [] as string[],
     rating: 4.5,
     review_count: 10,
-    is_featured: false,
   });
 
   // Image Upload State
@@ -279,12 +272,8 @@ export const AdminView: React.FC = () => {
   // Handle Product Save
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    const targetCatIds = (productForm.category_ids && productForm.category_ids.length > 0)
-      ? productForm.category_ids
-      : (productForm.category_id ? [productForm.category_id] : (categories[0]?.id ? [categories[0].id] : []));
-    const targetCatId = targetCatIds[0] || categories[0]?.id || '';
+    const targetCatId = productForm.category_id || categories[0]?.id || '';
     const cat = categories.find((c) => c.id === targetCatId);
-    const catNames = targetCatIds.map((cid) => categories.find((c) => c.id === cid || c.slug === cid)?.name || cid);
     const finalImages = (productForm.images && productForm.images.length > 0)
       ? productForm.images
       : (productForm.image_url ? [productForm.image_url] : ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&q=80']);
@@ -294,16 +283,13 @@ export const AdminView: React.FC = () => {
         name: productForm.name,
         description: productForm.description,
         category_id: targetCatId,
-        category_ids: targetCatIds,
         category_name: cat?.name || 'General',
-        category_names: catNames,
         price: Number(productForm.price),
         original_price: Number(productForm.original_price || productForm.price),
         discount_percent: Number(productForm.discount_percent),
         stock_quantity: Number(productForm.stock_quantity),
         in_stock: Number(productForm.stock_quantity) > 0,
         images: finalImages,
-        is_featured: Boolean(productForm.is_featured),
       });
       setEditingProduct(null);
     } else {
@@ -311,9 +297,7 @@ export const AdminView: React.FC = () => {
         name: productForm.name,
         description: productForm.description,
         category_id: targetCatId,
-        category_ids: targetCatIds,
         category_name: cat?.name || 'General',
-        category_names: catNames,
         price: Number(productForm.price),
         original_price: Number(productForm.original_price || productForm.price),
         discount_percent: Number(productForm.discount_percent),
@@ -324,7 +308,7 @@ export const AdminView: React.FC = () => {
         images: finalImages,
         specs: [{ label: 'Standard', value: 'Original' }],
         colors: [{ name: 'Default', hex: '#0f172a' }],
-        is_featured: Boolean(productForm.is_featured),
+        is_featured: true,
       });
     }
 
@@ -337,7 +321,6 @@ export const AdminView: React.FC = () => {
       name: '',
       description: '',
       category_id: categories[0]?.id || '',
-      category_ids: categories[0]?.id ? [categories[0].id] : [],
       price: 0,
       original_price: 0,
       discount_percent: 0,
@@ -347,7 +330,6 @@ export const AdminView: React.FC = () => {
       images: [],
       rating: 4.5,
       review_count: 10,
-      is_featured: false,
     });
     setUploadError('');
     setUploadProgress('');
@@ -360,15 +342,10 @@ export const AdminView: React.FC = () => {
       ? [...prod.images]
       : (prod.images?.[0] ? [prod.images[0]] : []);
 
-    const initialCatIds = Array.isArray(prod.category_ids) && prod.category_ids.length > 0
-      ? prod.category_ids
-      : (prod.category_id ? [prod.category_id] : (categories[0]?.id ? [categories[0].id] : []));
-
     setProductForm({
       name: prod.name,
       description: prod.description,
       category_id: prod.category_id,
-      category_ids: initialCatIds,
       price: prod.price,
       original_price: prod.original_price,
       discount_percent: prod.discount_percent,
@@ -378,7 +355,6 @@ export const AdminView: React.FC = () => {
       images: prodImages,
       rating: prod.rating,
       review_count: prod.review_count,
-      is_featured: Boolean(prod.is_featured),
     });
     setUploadError('');
     setUploadProgress('');
@@ -459,7 +435,7 @@ export const AdminView: React.FC = () => {
     const discPct = offer.discount_percentage || (parseInt((offer.discount_text || '').replace(/\D/g, ''), 10) || 30);
 
     setOfferForm({
-      title: offer.title || '',
+      title: offer.title,
       discount_percentage: discPct,
       discount_text: offer.discount_text || `${discPct}% OFF`,
       category_id: offer.category_id || 'all',
@@ -503,6 +479,10 @@ export const AdminView: React.FC = () => {
 
   const handleSaveOffer = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!offerForm.title.trim()) {
+      showToast('Please provide an offer title', 'error');
+      return;
+    }
     if (!offerForm.image_url.trim()) {
       showToast('Please upload or provide a banner image URL', 'error');
       return;
@@ -757,27 +737,11 @@ export const AdminView: React.FC = () => {
   const totalProductsCount = products.length;
 
   // Filtered products
-  const filteredProducts = products.filter((p) => {
-    const matchesSearch =
-      !searchTerm ||
+  const filteredProducts = products.filter(
+    (p) =>
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.category_name && p.category_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (p.brand && p.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase()));
-
-    const matchesCategory =
-      productCategoryFilter === 'all' ||
-      p.category_id === productCategoryFilter ||
-      (Array.isArray(p.category_ids) && p.category_ids.includes(productCategoryFilter));
-
-    const matchesStock =
-      productStockFilter === 'all' ||
-      (productStockFilter === 'in_stock'
-        ? (p.in_stock && (p.stock_quantity ?? 1) > 0)
-        : (!p.in_stock || (p.stock_quantity ?? 0) <= 0));
-
-    return matchesSearch && matchesCategory && matchesStock;
-  });
+      (p.category_name && p.category_name.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   // SCREEN: ADMIN LOGIN (When not authenticated - Setup and Public Registration Removed)
   if (!isAdmin) {
@@ -963,7 +927,7 @@ export const AdminView: React.FC = () => {
       <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto pb-1">
         <button
           onClick={() => setActiveTab('products')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 ${
             activeTab === 'products'
               ? 'bg-blue-600 text-white shadow-xs'
               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -974,20 +938,8 @@ export const AdminView: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setActiveTab('variant_manager')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
-            activeTab === 'variant_manager'
-              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs'
-              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-          }`}
-        >
-          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-          <span>Product &amp; Variant Manager</span>
-        </button>
-
-        <button
           onClick={() => setActiveTab('categories')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 ${
             activeTab === 'categories'
               ? 'bg-blue-600 text-white shadow-xs'
               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -999,7 +951,7 @@ export const AdminView: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('offers')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 ${
             activeTab === 'offers'
               ? 'bg-blue-600 text-white shadow-xs'
               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -1011,7 +963,7 @@ export const AdminView: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('orders')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 ${
             activeTab === 'orders'
               ? 'bg-blue-600 text-white shadow-xs'
               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -1023,7 +975,7 @@ export const AdminView: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('customers')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 ${
             activeTab === 'customers'
               ? 'bg-blue-600 text-white shadow-xs'
               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -1035,7 +987,7 @@ export const AdminView: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('coupons')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 ${
             activeTab === 'coupons'
               ? 'bg-blue-600 text-white shadow-xs'
               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -1047,7 +999,7 @@ export const AdminView: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('settings')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 ${
             activeTab === 'settings'
               ? 'bg-blue-600 text-white shadow-xs'
               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -1059,7 +1011,7 @@ export const AdminView: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('database')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shrink-0 ${
             activeTab === 'database'
               ? 'bg-blue-600 text-white shadow-xs'
               : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -1070,315 +1022,112 @@ export const AdminView: React.FC = () => {
         </button>
       </div>
 
-      {/* Admin Content Area wrapped with AdminErrorBoundary */}
-      <AdminErrorBoundary tabName={`Admin Tab: ${activeTab}`}>
-        <div className="space-y-6">
-          {/* 1. PRODUCTS TAB (Original Product Management with List, Search, Edit, Delete) */}
-          {activeTab === 'products' && (
+      {/* 1. PRODUCTS TAB */}
+      {activeTab === 'products' && (
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h3 className="text-base font-bold text-slate-900">Manage Store Products</h3>
-              <p className="text-xs text-slate-500">
-                View, search, edit and delete catalog products. For multi-size/color variant matrix &amp; custom size charts, use the dedicated{' '}
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('variant_manager')}
-                  className="text-blue-600 hover:underline font-bold inline cursor-pointer"
-                >
-                  Product &amp; Variant Manager
-                </button>{' '}
-                tab.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setActiveTab('variant_manager')}
-                className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                title="Open advanced variants manager"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Variant Manager</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  resetProductForm();
-                  setEditingProduct(null);
-                  setShowAddProductModal(true);
-                }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Product</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Search & Filter Bar */}
-          <div className="p-3 bg-white rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-sm">
               <input
                 type="text"
+                placeholder="Search products in catalog..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search products by title, brand, category, SKU..."
-                className="w-full pl-9 pr-9 py-2 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400"
               />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             </div>
 
-            <div className="flex items-center gap-2">
-              <select
-                value={productCategoryFilter}
-                onChange={(e) => setProductCategoryFilter(e.target.value)}
-                className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 focus:outline-hidden focus:border-blue-500 cursor-pointer"
-              >
-                <option value="all">All Categories</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={productStockFilter}
-                onChange={(e) => setProductStockFilter(e.target.value as any)}
-                className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 focus:outline-hidden focus:border-blue-500 cursor-pointer"
-              >
-                <option value="all">All Stock Status</option>
-                <option value="in_stock">In Stock Only</option>
-                <option value="out_of_stock">Out of Stock Only</option>
-              </select>
-            </div>
+            <button
+              onClick={() => {
+                resetProductForm();
+                setEditingProduct(null);
+                setShowAddProductModal(true);
+              }}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add New Product</span>
+            </button>
           </div>
 
-          {/* Products Table */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+          {/* Product Table */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-slate-50/80 text-slate-500 font-bold border-b border-slate-200">
-                    <th className="py-3 px-4">Product</th>
-                    <th className="py-3 px-4">Category</th>
-                    <th className="py-3 px-4">Price</th>
-                    <th className="py-3 px-4">Stock</th>
-                    <th className="py-3 px-4 text-center">Home Favourite</th>
-                    <th className="py-3 px-4">Variants</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-100">
+                  <tr>
+                    <th className="p-3.5">Product</th>
+                    <th className="p-3.5">Category</th>
+                    <th className="p-3.5">Price</th>
+                    <th className="p-3.5">Stock</th>
+                    <th className="p-3.5">Discount</th>
+                    <th className="p-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredProducts.map((prod) => {
-                    const primaryImg = (Array.isArray(prod.images) && prod.images[0]) || (prod as any).image_url || 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&q=80';
-                    const stockQty = prod.stock_quantity ?? 0;
-                    const inStock = prod.in_stock && stockQty > 0;
-                    const hasVars = (prod.variants && prod.variants.length > 0) || (prod.sizes && prod.sizes.length > 0) || (prod.colors && prod.colors.length > 0);
-
-                    return (
-                      <tr key={prod.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 p-1 flex items-center justify-center shrink-0 overflow-hidden">
-                              <img
-                                src={primaryImg}
-                                alt={prod.name}
-                                referrerPolicy="no-referrer"
-                                className="max-h-full max-w-full object-contain"
-                              />
-                            </div>
-                            <div className="min-w-0 max-w-xs">
-                              <p
-                                className="font-bold text-slate-900 truncate hover:text-blue-600 cursor-pointer"
-                                onClick={() => navigateTo('product_detail', { productId: prod.id })}
-                              >
-                                {prod.name}
-                              </p>
-                              <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400">
-                                {prod.brand && <span>{prod.brand}</span>}
-                                {prod.sku && (
-                                  <span className="font-mono text-[10px] bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200 text-slate-600">
-                                    SKU: {prod.sku}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-slate-600">
-                          <div className="flex flex-wrap gap-1 max-w-xs">
-                            {((Array.isArray(prod.category_ids) && prod.category_ids.length > 0)
-                              ? prod.category_ids
-                              : (prod.category_id ? [prod.category_id] : [])
-                            ).map((cid) => {
-                              const cObj = categories.find((c) => c.id === cid || c.slug === cid);
-                              return (
-                                <span
-                                  key={cid}
-                                  className="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-2xs"
-                                >
-                                  {cObj?.name || cid}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="font-bold text-slate-900 tabular-nums">
-                            ₹{prod.price.toLocaleString('en-IN')}
-                          </div>
-                          {prod.original_price > prod.price && (
-                            <div className="text-[11px] text-slate-400 line-through tabular-nums">
-                              ₹{prod.original_price.toLocaleString('en-IN')}
-                            </div>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          {inStock ? (
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                              In Stock ({stockQty})
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                              Out of Stock
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-center">
+                  {filteredProducts.map((prod) => (
+                    <tr key={prod.id} className="hover:bg-slate-50/50">
+                      <td className="p-3.5 flex items-center gap-3">
+                        <img
+                          src={prod.images[0]}
+                          alt=""
+                          referrerPolicy="no-referrer"
+                          className="w-10 h-10 rounded-lg object-contain bg-slate-50 p-1 border border-slate-100 shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-900 truncate max-w-xs">{prod.name}</p>
+                          <p className="text-[10px] text-slate-400 truncate">ID: {prod.id}</p>
+                        </div>
+                      </td>
+                      <td className="p-3.5 text-slate-600 font-medium">
+                        {prod.category_name || 'General'}
+                      </td>
+                      <td className="p-3.5 font-bold text-slate-900 tabular-nums">
+                        ₹{prod.price.toLocaleString('en-IN')}
+                      </td>
+                      <td className="p-3.5">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            prod.stock_quantity > 0
+                              ? 'bg-emerald-50 text-emerald-700'
+                              : 'bg-rose-50 text-rose-700'
+                          }`}
+                        >
+                          {prod.stock_quantity} left
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-slate-600 tabular-nums">
+                        {prod.discount_percent > 0 ? `${prod.discount_percent}%` : '—'}
+                      </td>
+                      <td className="p-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
                           <button
-                            type="button"
-                            onClick={async () => {
-                              const nextState = !prod.is_featured;
-                              await updateProduct(prod.id, { is_featured: nextState });
-                              showToast(
-                                nextState
-                                  ? `"${prod.name}" marked as Favourite & Featured on Home Page!`
-                                  : `"${prod.name}" removed from Home Page Featured Deals.`,
-                                nextState ? 'success' : 'info'
-                              );
+                            onClick={() => openEditProduct(prod)}
+                            className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors"
+                            title="Edit Product"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm(`Delete "${prod.name}"?`)) {
+                                deleteProduct(prod.id);
+                              }
                             }}
-                            className={`px-2.5 py-1 rounded-xl border transition-all cursor-pointer inline-flex items-center gap-1.5 text-xs font-bold ${
-                              prod.is_featured
-                                ? 'text-amber-800 bg-amber-50 border-amber-300 hover:bg-amber-100 shadow-2xs'
-                                : 'text-slate-400 bg-slate-50 border-slate-200 hover:text-amber-600 hover:border-amber-300'
-                            }`}
-                            title={prod.is_featured ? 'Click to remove from Home Page Featured Deals' : 'Click to mark as Favourite / Featured on Home Page'}
+                            className="p-1.5 hover:bg-rose-50 text-rose-600 rounded-lg transition-colors"
+                            title="Delete Product"
                           >
-                            <Star className={`w-3.5 h-3.5 ${prod.is_featured ? 'fill-amber-500 text-amber-500' : ''}`} />
-                            <span>{prod.is_featured ? 'Featured' : 'Mark'}</span>
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
-                        </td>
-                        <td className="py-3 px-4 text-[11px] text-slate-500">
-                          {hasVars ? (
-                            <div className="space-y-0.5">
-                              {prod.sizes && prod.sizes.length > 0 && (
-                                <p className="text-[10px] text-blue-700 font-medium">
-                                  {prod.sizes.length} sizes ({prod.sizes.slice(0, 3).join(', ')}{prod.sizes.length > 3 ? '...' : ''})
-                                </p>
-                              )}
-                              {prod.colors && prod.colors.length > 0 && (
-                                <p className="text-[10px] text-purple-700 font-medium">
-                                  {prod.colors.length} colors
-                                </p>
-                              )}
-                              {prod.variants && prod.variants.length > 0 && (
-                                <p className="text-[10px] text-slate-500">
-                                  {prod.variants.length} variant rows
-                                </p>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-slate-400">Single</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => navigateTo('product_detail', { productId: prod.id })}
-                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                              title="View in store"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openEditProduct(prod)}
-                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                              title="Edit product"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (window.confirm(`Are you sure you want to delete "${prod.name}"?`)) {
-                                  deleteProduct(prod.id);
-                                  showToast(`Product "${prod.name}" deleted.`, 'info');
-                                }
-                              }}
-                              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                              title="Delete product"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {filteredProducts.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="py-12 text-center text-slate-400">
-                        <Package className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-                        <p className="font-bold text-slate-600 text-sm">No products found</p>
-                        <p className="text-xs text-slate-400 mt-1">
-                          Try clearing your search query or filters.
-                        </p>
-                        {searchTerm && (
-                          <button
-                            type="button"
-                            onClick={() => setSearchTerm('')}
-                            className="mt-3 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 cursor-pointer"
-                          >
-                            Clear Search
-                          </button>
-                        )}
+                        </div>
                       </td>
                     </tr>
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
-
-            <div className="p-3 bg-slate-50/80 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-              <span>
-                Showing <strong>{filteredProducts.length}</strong> of <strong>{products.length}</strong> products
-              </span>
-              <span>Sorted by latest added</span>
-            </div>
           </div>
         </div>
-      )}
-
-      {/* 2. PRODUCT & VARIANT MANAGER TAB (Dedicated Advanced Variant Dashboard) */}
-      {activeTab === 'variant_manager' && (
-        <AdminErrorBoundary tabName="Product & Variant Manager">
-          <ProductVariantDashboard />
-        </AdminErrorBoundary>
       )}
 
       {/* 2. CATEGORIES TAB */}
@@ -1542,9 +1291,7 @@ export const AdminView: React.FC = () => {
 
                           {/* Title & Description */}
                           <td className="p-3.5 max-w-xs">
-                            <p className="font-bold text-slate-900 truncate">
-                              {offer.title?.trim() || <span className="text-slate-400 font-normal italic">No Title</span>}
-                            </p>
+                            <p className="font-bold text-slate-900 truncate">{offer.title}</p>
                             {offer.description && (
                               <p className="text-[11px] text-slate-500 truncate mt-0.5">{offer.description}</p>
                             )}
@@ -1641,10 +1388,7 @@ export const AdminView: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const confirmMsg = offer.title?.trim()
-                                    ? `Delete offer "${offer.title}"?`
-                                    : 'Delete this offer banner?';
-                                  if (confirm(confirmMsg)) {
+                                  if (confirm(`Delete offer "${offer.title}"?`)) {
                                     deleteOffer(offer.id);
                                   }
                                 }}
@@ -2200,7 +1944,7 @@ export const AdminView: React.FC = () => {
                 <div className="space-y-3">
                   <label className="block text-xs font-bold text-slate-700">Store Logo</label>
                   <div className="flex items-center gap-3">
-                    <div className="w-16 h-16 rounded-2xl border border-slate-700 bg-[#090a0d] flex items-center justify-center overflow-hidden shrink-0">
+                    <div className="w-16 h-16 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
                       {settingsForm.logo_url ? (
                         <img
                           src={settingsForm.logo_url}
@@ -2461,8 +2205,6 @@ export const AdminView: React.FC = () => {
           </div>
         </div>
       )}
-        </div>
-      </AdminErrorBoundary>
 
       {/* Add / Edit Product Modal */}
       {showAddProductModal && (
@@ -2494,20 +2236,18 @@ export const AdminView: React.FC = () => {
               </div>
 
               <div>
-                <MultiCategorySelector
-                  categories={categories}
-                  selectedCategoryIds={productForm.category_ids && productForm.category_ids.length > 0 ? productForm.category_ids : (productForm.category_id ? [productForm.category_id] : [])}
-                  onChange={(ids) =>
-                    setProductForm({
-                      ...productForm,
-                      category_ids: ids,
-                      category_id: ids[0] || '',
-                    })
-                  }
-                  label="Category (Multi-Select)"
-                  required
-                  helperText="Assign to multiple categories (e.g. Women Kurtis, Ethnic Wear, Festive Collection, Best Sellers)."
-                />
+                <label className="block text-xs font-bold text-slate-700 mb-1">Category</label>
+                <select
+                  value={productForm.category_id}
+                  onChange={(e) => setProductForm({ ...productForm, category_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white"
+                >
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
@@ -2550,27 +2290,6 @@ export const AdminView: React.FC = () => {
                   onChange={(e) => setProductForm({ ...productForm, stock_quantity: Number(e.target.value) })}
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm"
                 />
-              </div>
-
-              {/* Home Page Featured / Favourite Selection */}
-              <div>
-                <label className="flex items-center gap-2.5 cursor-pointer p-3 rounded-xl border border-amber-200 bg-amber-50/70 hover:bg-amber-50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(productForm.is_featured)}
-                    onChange={(e) => setProductForm({ ...productForm, is_featured: e.target.checked })}
-                    className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 cursor-pointer"
-                  />
-                  <div className="flex-1">
-                    <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-                      <Star className={`w-3.5 h-3.5 ${productForm.is_featured ? 'fill-amber-500 text-amber-500' : 'text-amber-600'}`} />
-                      <span>Featured / Favourite Product on Home Page</span>
-                    </span>
-                    <p className="text-[11px] text-amber-700/80 mt-0.5">
-                      Showcase this product on the Home Page "Featured Deals" section in real-time.
-                    </p>
-                  </div>
-                </label>
               </div>
 
               {/* Product Photos Section (Multi-Image Gallery & Supabase Storage) */}
@@ -2905,11 +2624,12 @@ export const AdminView: React.FC = () => {
               {/* Offer Title */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Offer Title <span className="text-slate-400 font-normal">(Optional)</span>
+                  Offer Title <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Mega Clearance Sale or Festival Special (Optional)"
+                  required
+                  placeholder="e.g. Mega Clearance Sale or Festival Special"
                   value={offerForm.title}
                   onChange={(e) => setOfferForm({ ...offerForm, title: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400"
@@ -2995,11 +2715,11 @@ export const AdminView: React.FC = () => {
               {/* Description / Subtitle */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Offer Description / Subtitle <span className="text-slate-400 font-normal">(Optional)</span>
+                  Offer Description / Subtitle
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Short description of the deal or products covered (Optional)"
+                  placeholder="Short description of the deal or products covered"
                   value={offerForm.description}
                   onChange={(e) => setOfferForm({ ...offerForm, description: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400"

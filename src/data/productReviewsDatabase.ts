@@ -2,7 +2,7 @@ import { Product, ProductReview } from '../types';
 
 // Curated authentic Indian reviewer names
 const REVIEWER_NAMES = [
-  'Rohan Sharma',
+  'Rahul Sharma',
   'Priya Sengupta',
   'Vikram Joshi',
   'Sneha Rao',

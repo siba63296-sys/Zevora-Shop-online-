@@ -1,8 +1,6 @@
-import express from 'express';
-import type { Request, Response, NextFunction } from 'express';
+import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
-import fs from 'fs';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
@@ -25,43 +23,22 @@ app.use(
 
 // Middleware: Normalize Vercel Serverless Function rewrites & reverse proxies
 app.use((req, _res, next) => {
-  // 1. Check if rewrite forwarded a query parameter (e.g. ?__path=cashfree/config-status)
-  const qPath = req.query && (req.query.__path || req.query.path || req.query['1'] || req.query['0']);
-  if (typeof qPath === 'string' && qPath.trim()) {
-    const clean = qPath.trim().replace(/^\/+/, '');
-    req.url = clean.startsWith('api/') ? `/${clean}` : `/api/${clean}`;
-  } else {
-    // 2. Check Vercel regex rewrite match headers (e.g. x-now-route-matches: 1=cashfree%2Fconfig-status)
-    const rawMatches = req.headers['x-now-route-matches'] as string;
-    if (rawMatches && (req.url === '/api' || req.url === '/api/' || req.url === '/')) {
-      try {
-        const parsed = new URLSearchParams(rawMatches);
-        const sub = parsed.get('1') || parsed.get('0');
-        if (sub) {
-          const dec = decodeURIComponent(sub).replace(/^\/+/, '');
-          req.url = dec.startsWith('api/') ? `/${dec}` : `/api/${dec}`;
-        }
-      } catch {}
-    }
-
-    // 3. Fallback to matched path if it is a specific subpath (and not just /api)
-    const rawMatched = (req.headers['x-matched-path'] || req.headers['x-forwarded-uri'] || req.headers['x-original-url']) as string;
-    if (rawMatched && rawMatched !== '/api' && rawMatched !== '/api/' && rawMatched !== '/' && (req.url === '/api' || req.url === '/api/' || req.url === '/')) {
-      req.url = rawMatched.startsWith('/api') ? rawMatched : `/api${rawMatched.startsWith('/') ? '' : '/'}${rawMatched}`;
-    }
+  // If Vercel rewrote /api/(.*) -> /api, the original path is in x-matched-path or x-forwarded-uri
+  const matched = (req.headers['x-matched-path'] || req.headers['x-forwarded-uri'] || req.headers['x-now-route-matches']) as string;
+  if (matched && (req.url === '/api' || req.url === '/api/' || req.url === '/' || !req.url.startsWith('/api'))) {
+    req.url = matched;
   }
-
-  // 4. If request arrived without /api prefix, prefix with /api
+  // If request arrived without /api prefix (e.g. /cashfree/config-status), prefix with /api
   if (req.url && !req.url.startsWith('/api/') && req.url !== '/api') {
     if (
-      req.url.startsWith('/cashfree') ||
+      req.url.startsWith('/cashfree/') ||
       req.url.startsWith('/coupons') ||
       req.url.startsWith('/offers') ||
       req.url.startsWith('/settings') ||
       req.url.startsWith('/upload-product-image') ||
       req.url.startsWith('/products')
     ) {
-      req.url = `/api${req.url.startsWith('/') ? '' : '/'}${req.url.replace(/^\/+/, '')}`;
+      req.url = `/api${req.url}`;
     }
   }
   next();
@@ -76,97 +53,24 @@ const supabaseUrl = (!envUrl || envUrl.includes('your-project.supabase.co') || e
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
-function sanitizeEnv(val: unknown): string {
-  if (!val || typeof val !== 'string') return '';
-  return val
-    .trim()
-    .replace(/^["'`]|["'`]$/g, '')
-    .replace(/\r?\n|\r/g, '')
-    .trim();
-}
-
 // Cashfree credentials from server-side environment variables ONLY (never exposed to client)
-export const getCashfreeConfig = () => {
-  const rawAppId = (
-    process.env.CASHFREE_APP_ID ||
-    process.env.CASHFREE_CLIENT_ID ||
-    process.env.CASHFREE_KEY_ID ||
-    process.env.cashfree_app_id ||
-    process.env.Cashfree_App_Id ||
-    ''
-  );
-  const rawSecretKey = (
-    process.env.CASHFREE_SECRET_KEY ||
-    process.env.CASHFREE_CLIENT_SECRET ||
-    process.env.CASHFREE_API_SECRET ||
-    process.env.CASHFREE_SECRET ||
-    process.env.cashfree_secret_key ||
-    process.env.Cashfree_Secret_Key ||
-    ''
-  );
-  const rawApiVersion = (
-    process.env.CASHFREE_API_VERSION ||
-    process.env.cashfree_api_version ||
-    '2023-08-01'
-  );
-  const rawEnv = (
-    process.env.CASHFREE_ENV ||
-    process.env.cashfree_env ||
-    'PRODUCTION'
-  ).toUpperCase().trim();
+const getCashfreeConfig = () => {
+  const rawAppId = process.env.CASHFREE_APP_ID || process.env.CASHFREE_CLIENT_ID || '';
+  const rawSecretKey = process.env.CASHFREE_SECRET_KEY || process.env.CASHFREE_CLIENT_SECRET || '';
+  const rawEnv = (process.env.CASHFREE_ENV || 'PRODUCTION').toUpperCase().trim();
+  const rawApiVersion = process.env.CASHFREE_API_VERSION || '2023-08-01';
 
-  const appId = sanitizeEnv(rawAppId);
-  const secretKey = sanitizeEnv(rawSecretKey);
-  const apiVersion = sanitizeEnv(rawApiVersion) || '2023-08-01';
+  // Sanitize trimmed strings (strip quotes if pasted in Vercel UI with quotes)
+  const appId = rawAppId.trim().replace(/^["']|["']$/g, '');
+  const secretKey = rawSecretKey.trim().replace(/^["']|["']$/g, '');
+  const env = rawEnv === 'SANDBOX' ? 'SANDBOX' : 'PRODUCTION';
+  const apiVersion = rawApiVersion.trim().replace(/^["']|["']$/g, '') || '2023-08-01';
 
-  // Requirement 12: Ensure production Cashfree uses the Production environment, not Sandbox.
-  // In Vercel or Production deployment, strictly enforce PRODUCTION unless explicitly set to Sandbox in non-prod
-  const isVercelProd = process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
-  let env: 'PRODUCTION' | 'SANDBOX' = 'PRODUCTION';
-  if (isVercelProd) {
-    env = 'PRODUCTION';
-  } else if (rawEnv === 'SANDBOX') {
-    env = 'SANDBOX';
-  } else {
-    env = 'PRODUCTION';
-  }
-
+  // Production Cashfree PG API Endpoint: https://api.cashfree.com/pg
+  // Sandbox Cashfree PG API Endpoint: https://sandbox.cashfree.com/pg
   const baseUrl = env === 'SANDBOX'
     ? 'https://sandbox.cashfree.com/pg'
     : 'https://api.cashfree.com/pg';
-
-  const isConfigured = Boolean(appId && secretKey);
-
-  // Safe server-side diagnostic logging (NEVER exposing secret values)
-  const envKeysDetected = Object.keys(process.env).filter((k) =>
-    k.toUpperCase().includes('CASHFREE')
-  );
-
-  if (!isConfigured) {
-    console.warn('[Cashfree Config Warning] Server credentials incomplete:', {
-      hasAppId: Boolean(appId),
-      appIdLength: appId.length,
-      hasSecretKey: Boolean(secretKey),
-      secretKeyLength: secretKey.length,
-      environment: env,
-      apiVersion,
-      detectedCashfreeEnvKeys: envKeysDetected,
-      hint: envKeysDetected.length === 0
-        ? 'No CASHFREE_* environment variables found in process.env. Ensure they are configured in Vercel Project Settings for Production, and trigger a new deployment.'
-        : 'CASHFREE_* environment variables detected, but App ID or Secret Key resolved to empty string.',
-    });
-  } else {
-    console.log('[Cashfree Config] Credentials verified successfully:', {
-      appIdPrefix: appId.substring(0, 4) + '...',
-      appIdLength: appId.length,
-      hasSecretKey: true,
-      secretKeyLength: secretKey.length,
-      environment: env,
-      apiVersion,
-      baseUrl,
-      detectedCashfreeEnvKeys: envKeysDetected,
-    });
-  }
 
   return {
     appId,
@@ -174,7 +78,7 @@ export const getCashfreeConfig = () => {
     env,
     apiVersion,
     baseUrl,
-    isConfigured,
+    isConfigured: Boolean(appId && secretKey),
   };
 };
 
@@ -359,31 +263,19 @@ async function validateCouponServerSide(
 }
 
 // 1. Config status check (safe, does NOT expose secret key)
-app.get(['/api/cashfree/config-status', '/cashfree/config-status'], (_req: Request, res: Response) => {
+app.get('/api/cashfree/config-status', (_req: Request, res: Response) => {
   const config = getCashfreeConfig();
-  res.setHeader('Cache-Control', 'no-store, max-age=0');
   res.json({
     configured: config.isConfigured,
     environment: config.env,
     appIdConfigured: Boolean(config.appId),
     appIdPrefix: config.appId ? config.appId.substring(0, 4) + '...' : null,
     secretConfigured: Boolean(config.secretKey),
-    apiVersion: config.apiVersion,
-    timestamp: new Date().toISOString(),
-    diagnostics: {
-      hasAppId: Boolean(config.appId),
-      hasSecret: Boolean(config.secretKey),
-      appIdLength: config.appId ? config.appId.length : 0,
-      secretLength: config.secretKey ? config.secretKey.length : 0,
-      envKeysDetected: Object.keys(process.env)
-        .filter((k) => k.toUpperCase().includes('CASHFREE'))
-        .map((k) => k.trim()),
-    },
   });
 });
 
 // Server-side Coupon Validation Endpoint
-app.post(['/api/coupons/validate', '/coupons/validate'], async (req: Request, res: Response) => {
+app.post('/api/coupons/validate', async (req: Request, res: Response) => {
   const { code, items, cartSubtotal } = req.body;
   const result = await validateCouponServerSide(
     code,
@@ -394,7 +286,7 @@ app.post(['/api/coupons/validate', '/coupons/validate'], async (req: Request, re
 });
 
 // 2. Create Cashfree Order
-app.post(['/api/cashfree/create-order', '/cashfree/create-order'], async (req: Request, res: Response) => {
+app.post('/api/cashfree/create-order', async (req: Request, res: Response) => {
   const config = getCashfreeConfig();
 
   if (!config.isConfigured) {
@@ -590,7 +482,7 @@ app.post(['/api/cashfree/create-order', '/cashfree/create-order'], async (req: R
 });
 
 // 3. Server-side Verify Cashfree Order & Payment
-app.post(['/api/cashfree/verify-order', '/cashfree/verify-order'], async (req: Request, res: Response) => {
+app.post('/api/cashfree/verify-order', async (req: Request, res: Response) => {
   const config = getCashfreeConfig();
 
   if (!config.isConfigured) {
@@ -762,7 +654,7 @@ app.post(['/api/cashfree/verify-order', '/cashfree/verify-order'], async (req: R
 });
 
 // 4. Secure & Idempotent Cashfree Webhook Listener
-app.post(['/api/cashfree/webhook', '/cashfree/webhook'], async (req: Request, res: Response) => {
+app.post('/api/cashfree/webhook', async (req: Request, res: Response) => {
   const config = getCashfreeConfig();
   const signature = req.headers['x-webhook-signature'] as string;
   const timestamp = req.headers['x-webhook-timestamp'] as string;
@@ -1152,73 +1044,6 @@ app.post('/api/upload-product-image', async (req: Request, res: Response) => {
 });
 
 // 8. Products Endpoints (Using exact Supabase PostgreSQL schema with Service Role)
-async function resolveCategoryIds(catIds: unknown, primaryCatId?: unknown): Promise<string[]> {
-  const result: string[] = [];
-  const rawList: string[] = Array.isArray(catIds)
-    ? catIds.map(String)
-    : (primaryCatId ? [String(primaryCatId)] : []);
-
-  if (rawList.length === 0 || !supabase) return result;
-
-  try {
-    const { data: catRows } = await supabase.from('categories').select('id, slug, name');
-    const allCats = catRows || [];
-
-    for (const item of rawList) {
-      if (!item) continue;
-      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item)) {
-        result.push(item);
-      } else {
-        const cleanSlug = item.toLowerCase().replace(/^cat-/, '');
-        const matched = allCats.find(
-          (c: any) =>
-            c.slug === cleanSlug ||
-            c.slug === item ||
-            c.id === item ||
-            c.name.toLowerCase() === item.toLowerCase()
-        );
-        if (matched) {
-          result.push(matched.id);
-        }
-      }
-    }
-  } catch {}
-
-  return Array.from(new Set(result));
-}
-
-async function syncProductCategoriesTable(productId: string, categoryIds: string[]): Promise<void> {
-  if (!supabase || !productId || categoryIds.length === 0) return;
-  try {
-    await supabase.from('product_categories').delete().eq('product_id', productId);
-    const rows = categoryIds.map((cid) => ({
-      product_id: productId,
-      category_id: cid,
-    }));
-    await supabase.from('product_categories').insert(rows);
-  } catch (err: any) {
-    // If table doesn't exist, ignore safely
-  }
-}
-
-async function getProductCategoriesMap(): Promise<Map<string, string[]>> {
-  const map = new Map<string, string[]>();
-  if (!supabase) return map;
-  try {
-    const { data } = await supabase.from('product_categories').select('product_id, category_id');
-    if (data && Array.isArray(data)) {
-      for (const row of data) {
-        if (row.product_id && row.category_id) {
-          const list = map.get(row.product_id) || [];
-          if (!list.includes(row.category_id)) list.push(row.category_id);
-          map.set(row.product_id, list);
-        }
-      }
-    }
-  } catch {}
-  return map;
-}
-
 app.post('/api/products', async (req: Request, res: Response) => {
   if (!supabase) {
     res.status(503).json({ success: false, error: 'Database client unavailable' });
@@ -1227,15 +1052,36 @@ app.post('/api/products', async (req: Request, res: Response) => {
 
   try {
     const raw = req.body;
-    const resolvedCatIds = await resolveCategoryIds(raw.category_ids, raw.category_id);
-    let targetCatId = resolvedCatIds[0] || raw.category_id;
+    let targetCatId = raw.category_id;
+
+    // Resolve category UUID if slug or name was provided
+    if (targetCatId) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetCatId);
+      if (!isUuid) {
+        const cleanSlug = String(targetCatId).toLowerCase().replace(/^cat-/, '');
+        const { data: catRows } = await supabase
+          .from('categories')
+          .select('id, slug, name');
+        if (catRows && catRows.length > 0) {
+          const matched = catRows.find(
+            (c: any) =>
+              c.slug === cleanSlug ||
+              c.slug === targetCatId ||
+              c.name.toLowerCase() === String(raw.category_name || '').toLowerCase() ||
+              c.id === targetCatId
+          );
+          if (matched) {
+            targetCatId = matched.id;
+          }
+        }
+      }
+    }
 
     // Default to first valid category if missing or still not UUID
     if (!targetCatId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetCatId)) {
       const { data: firstCat } = await supabase.from('categories').select('id').limit(1).single();
       if (firstCat) {
         targetCatId = firstCat.id;
-        if (!resolvedCatIds.includes(firstCat.id)) resolvedCatIds.push(firstCat.id);
       }
     }
 
@@ -1250,12 +1096,6 @@ app.post('/api/products', async (req: Request, res: Response) => {
     const images = Array.isArray(raw.images) && raw.images.length > 0
       ? raw.images
       : (raw.image_url ? [raw.image_url] : ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&q=80']);
-
-    // Rich specs with category_ids
-    const initialSpecs = Array.isArray(raw.specs) || typeof raw.specs === 'object' ? raw.specs : [{ label: 'Standard', value: 'Original' }];
-    const specsPayload = typeof initialSpecs === 'object' && !Array.isArray(initialSpecs)
-      ? { ...initialSpecs, category_ids: resolvedCatIds }
-      : { items: initialSpecs, category_ids: resolvedCatIds };
 
     // EXACT Supabase products table schema: NO category_name column!
     const dbPayload = {
@@ -1272,7 +1112,7 @@ app.post('/api/products', async (req: Request, res: Response) => {
       rating_count: Number(raw.review_count ?? raw.rating_count) || 1,
       brand: raw.brand || 'General',
       is_featured: Boolean(raw.is_featured),
-      specs: specsPayload,
+      specs: Array.isArray(raw.specs) || typeof raw.specs === 'object' ? raw.specs : [{ label: 'Standard', value: 'Original' }],
     };
 
     const { data, error } = await supabase.from('products').insert([dbPayload]).select();
@@ -1282,9 +1122,6 @@ app.post('/api/products', async (req: Request, res: Response) => {
       return;
     }
 
-    // Sync product_categories junction table
-    await syncProductCategoriesTable(prodId, resolvedCatIds);
-
     res.json({
       success: true,
       product: {
@@ -1292,90 +1129,11 @@ app.post('/api/products', async (req: Request, res: Response) => {
         original_price: mrp,
         stock_quantity: stock,
         in_stock: stock > 0,
-        category_id: targetCatId,
-        category_ids: resolvedCatIds,
         category_name: raw.category_name,
       },
     });
   } catch (err: any) {
     console.error('Server error creating product:', err);
-    res.status(500).json({ success: false, error: err?.message });
-  }
-});
-
-app.get('/api/products/featured', async (_req: Request, res: Response) => {
-  if (!supabase) {
-    res.status(503).json({ success: false, error: 'Database client unavailable' });
-    return;
-  }
-  try {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('is_featured', true)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      res.status(400).json({ success: false, error: error.message });
-      return;
-    }
-
-    const pcMap = await getProductCategoriesMap();
-    const enriched = (data || []).map((p: any) => {
-      const fromJunction = pcMap.get(p.id);
-      const fromSpecs = p.specs && typeof p.specs === 'object' && Array.isArray(p.specs.category_ids) && p.specs.category_ids.length > 0
-        ? p.specs.category_ids
-        : null;
-      const categoryIds = fromJunction && fromJunction.length > 0
-        ? fromJunction
-        : fromSpecs || (p.category_id ? [p.category_id] : []);
-
-      return {
-        ...p,
-        category_ids: categoryIds,
-      };
-    });
-
-    res.json({ success: true, products: enriched });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err?.message });
-  }
-});
-
-app.get('/api/products', async (_req: Request, res: Response) => {
-  if (!supabase) {
-    res.status(503).json({ success: false, error: 'Database client unavailable' });
-    return;
-  }
-  try {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      res.status(400).json({ success: false, error: error.message });
-      return;
-    }
-
-    const pcMap = await getProductCategoriesMap();
-    const enriched = (data || []).map((p: any) => {
-      const fromJunction = pcMap.get(p.id);
-      const fromSpecs = p.specs && typeof p.specs === 'object' && Array.isArray(p.specs.category_ids) && p.specs.category_ids.length > 0
-        ? p.specs.category_ids
-        : null;
-      const categoryIds = fromJunction && fromJunction.length > 0
-        ? fromJunction
-        : fromSpecs || (p.category_id ? [p.category_id] : []);
-
-      return {
-        ...p,
-        category_ids: categoryIds,
-      };
-    });
-
-    res.json({ success: true, products: enriched });
-  } catch (err: any) {
     res.status(500).json({ success: false, error: err?.message });
   }
 });
@@ -1389,10 +1147,22 @@ app.put('/api/products/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const raw = req.body;
-    let resolvedCatIds: string[] = [];
+    let targetCatId = raw.category_id;
 
-    if (raw.category_ids !== undefined || raw.category_id !== undefined) {
-      resolvedCatIds = await resolveCategoryIds(raw.category_ids, raw.category_id);
+    if (targetCatId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetCatId)) {
+      const cleanSlug = String(targetCatId).toLowerCase().replace(/^cat-/, '');
+      const { data: catRows } = await supabase.from('categories').select('id, slug, name');
+      if (catRows && catRows.length > 0) {
+        const matched = catRows.find(
+          (c: any) =>
+            c.slug === cleanSlug ||
+            c.slug === targetCatId ||
+            c.name.toLowerCase() === String(raw.category_name || '').toLowerCase()
+        );
+        if (matched) {
+          targetCatId = matched.id;
+        }
+      }
     }
 
     const updates: any = {};
@@ -1406,47 +1176,17 @@ app.put('/api/products/:id', async (req: Request, res: Response) => {
     if (raw.stock_quantity !== undefined || raw.stock !== undefined) {
       updates.stock = Number(raw.stock_quantity ?? raw.stock);
     }
-    if (resolvedCatIds.length > 0) {
-      updates.category_id = resolvedCatIds[0];
-    } else if (raw.category_id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw.category_id)) {
-      updates.category_id = raw.category_id;
+    if (targetCatId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetCatId)) {
+      updates.category_id = targetCatId;
     }
-
     if (raw.images !== undefined) updates.images = raw.images;
     if (raw.rating !== undefined) updates.rating = Number(raw.rating);
     if (raw.rating_count !== undefined || raw.review_count !== undefined) {
       updates.rating_count = Number(raw.review_count ?? raw.rating_count);
     }
     if (raw.brand !== undefined) updates.brand = raw.brand;
-    if (raw.is_featured !== undefined) {
-      updates.is_featured = Boolean(raw.is_featured);
-    }
-
-    // Merge specs preserving existing fields and embedding category_ids
-    const { data: curProd } = await supabase.from('products').select('specs').eq('id', id).maybeSingle();
-    const curSpecs = curProd?.specs && typeof curProd.specs === 'object' && !Array.isArray(curProd.specs)
-      ? { ...curProd.specs }
-      : {};
-
-    let mergedSpecs = {
-      ...curSpecs,
-      ...(raw.specs && typeof raw.specs === 'object' && !Array.isArray(raw.specs) ? raw.specs : {}),
-    };
-
-    if (resolvedCatIds.length > 0) {
-      mergedSpecs.category_ids = resolvedCatIds;
-    }
-
-    if (raw.is_featured !== undefined) {
-      if (raw.is_featured) {
-        mergedSpecs.featured_at = raw.featured_at || new Date().toISOString();
-      } else {
-        const { featured_at, ...restSpecs } = mergedSpecs;
-        mergedSpecs = restSpecs;
-      }
-    }
-
-    updates.specs = mergedSpecs;
+    if (raw.is_featured !== undefined) updates.is_featured = Boolean(raw.is_featured);
+    if (raw.specs !== undefined) updates.specs = raw.specs;
 
     const { data, error } = await supabase.from('products').update(updates).eq('id', id).select();
     if (error) {
@@ -1454,72 +1194,7 @@ app.put('/api/products/:id', async (req: Request, res: Response) => {
       return;
     }
 
-    if (resolvedCatIds.length > 0) {
-      await syncProductCategoriesTable(id, resolvedCatIds);
-    }
-
-    res.json({
-      success: true,
-      product: {
-        ...data?.[0],
-        category_ids: resolvedCatIds.length > 0 ? resolvedCatIds : (data?.[0]?.category_id ? [data[0].category_id] : []),
-      },
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err?.message });
-  }
-});
-
-app.get('/api/products/:id', async (req: Request, res: Response) => {
-  if (!supabase) {
-    res.status(503).json({ success: false, error: 'Database client unavailable' });
-    return;
-  }
-
-  try {
-    const { id } = req.params;
-    const { data: product, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error) {
-      res.status(400).json({ success: false, error: error.message });
-      return;
-    }
-
-    if (!product) {
-      res.status(404).json({ success: false, error: 'Product not found' });
-      return;
-    }
-
-    let variants: any[] = [];
-    try {
-      const { data: vData } = await supabase
-        .from('product_variants')
-        .select('*')
-        .eq('product_id', id);
-      if (vData && Array.isArray(vData)) {
-        variants = vData;
-      }
-    } catch {}
-
-    const pcMap = await getProductCategoriesMap();
-    const fromJunction = pcMap.get(product.id);
-    const fromSpecs = product.specs && typeof product.specs === 'object' && Array.isArray(product.specs.category_ids) && product.specs.category_ids.length > 0
-      ? product.specs.category_ids
-      : null;
-    const categoryIds = fromJunction && fromJunction.length > 0
-      ? fromJunction
-      : fromSpecs || (product.category_id ? [product.category_id] : []);
-
-    const enrichedProduct = {
-      ...product,
-      category_ids: categoryIds,
-    };
-
-    res.json({ success: true, product: enrichedProduct, variants });
+    res.json({ success: true, product: data?.[0] });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err?.message });
   }
@@ -1533,11 +1208,6 @@ app.delete('/api/products/:id', async (req: Request, res: Response) => {
 
   try {
     const { id } = req.params;
-    try {
-      await supabase.from('product_categories').delete().eq('product_id', id);
-    } catch {
-      // ignore if table does not exist or relation already cleaned up
-    }
     const { error } = await supabase.from('products').delete().eq('id', id);
     if (error) {
       res.status(400).json({ success: false, error: error.message });
@@ -1546,49 +1216,6 @@ app.delete('/api/products/:id', async (req: Request, res: Response) => {
     res.json({ success: true });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err?.message });
-  }
-});
-
-app.delete('/api/categories/:id', async (req: Request, res: Response) => {
-  if (!supabase) {
-    res.status(503).json({ success: false, error: 'Database client unavailable' });
-    return;
-  }
-
-  try {
-    const { id } = req.params;
-    // Delete products belonging to this category first
-    await supabase.from('products').delete().eq('category_id', id);
-    const { error } = await supabase.from('categories').delete().eq('id', id);
-    if (error) {
-      res.status(400).json({ success: false, error: error.message });
-      return;
-    }
-    res.json({ success: true });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err?.message });
-  }
-});
-
-// Explicit PWA Manifest route to guarantee correct Content-Type header
-app.get(['/manifest.webmanifest', '/manifest.json'], (_req: Request, res: Response) => {
-  const manifestPath = path.resolve(__dirname, 'public', 'manifest.webmanifest');
-  const distManifestPath = path.resolve(__dirname, 'dist', 'manifest.webmanifest');
-  const targetPath = fs.existsSync(distManifestPath) ? distManifestPath : manifestPath;
-  res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
-  res.setHeader('Cache-Control', 'public, max-age=3600');
-  res.sendFile(targetPath);
-});
-
-// Explicit Service Worker route to ensure no-cache header
-app.get('/sw.js', (_req: Request, res: Response, next: NextFunction) => {
-  const distSwPath = path.resolve(__dirname, 'dist', 'sw.js');
-  if (fs.existsSync(distSwPath)) {
-    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.sendFile(distSwPath);
-  } else {
-    next();
   }
 });
 

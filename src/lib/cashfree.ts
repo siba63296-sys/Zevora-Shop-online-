@@ -23,13 +23,8 @@ export async function getCashfreeConfigStatus(): Promise<CashfreeConfigStatus> {
   const endpoints = ['/api/cashfree/config-status', '/cashfree/config-status'];
   for (const ep of endpoints) {
     try {
-      const res = await fetch(ep, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-        cache: 'no-store',
-      });
-      const contentType = res.headers.get('content-type') || '';
-      if (res.ok && contentType.includes('application/json')) {
+      const res = await fetch(ep);
+      if (res.ok) {
         const data = await res.json();
         if (data && typeof data.configured === 'boolean') {
           return data;

@@ -1,13 +1,10 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { StoreProvider, useStore } from './context/StoreContext';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { Toast } from './components/Toast';
-import { AdsterraBanner } from './components/AdsterraBanner';
+import { NewsletterSubscription } from './components/NewsletterSubscription';
 import { ProductComparisonModal, ComparisonDock } from './components/ProductComparisonModal';
-import { PWAInstallBanner } from './components/PWAInstallBanner';
-import { OfflineIndicator } from './components/OfflineIndicator';
-import { resolveImageUrl } from './utils/imageUrl';
 
 // Views
 import { HomeView } from './views/HomeView';
@@ -35,107 +32,6 @@ import {
   RotateCcw,
   CreditCard,
 } from 'lucide-react';
-
-/**
- * Dynamic head injection script in the main App component that reads store_settings
- * from the store context and updates <link rel='icon'>, <link rel='apple-touch-icon'>,
- * and related manifest / metadata tags in the DOM.
- */
-const DynamicHeadInjector: React.FC = () => {
-  const { storeSettings } = useStore();
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-
-    const storeName = storeSettings?.store_name || 'Zevora';
-    const tagline = storeSettings?.tagline ? ` - ${storeSettings.tagline}` : '';
-    document.title = `${storeName}${tagline}`;
-
-    const rawFavicon = storeSettings?.favicon_url || '/zevora-header-logo.png';
-    const faviconUrl =
-      rawFavicon.startsWith('http://') ||
-      rawFavicon.startsWith('https://') ||
-      rawFavicon.startsWith('/') ||
-      rawFavicon.startsWith('data:')
-        ? rawFavicon
-        : resolveImageUrl(rawFavicon);
-
-    if (faviconUrl) {
-      // Determine MIME type for the configured favicon
-      let mimeType = 'image/png';
-      if (faviconUrl.endsWith('.svg')) mimeType = 'image/svg+xml';
-      else if (faviconUrl.endsWith('.ico')) mimeType = 'image/x-icon';
-      else if (faviconUrl.endsWith('.jpg') || faviconUrl.endsWith('.jpeg')) mimeType = 'image/jpeg';
-      else if (faviconUrl.endsWith('.webp')) mimeType = 'image/webp';
-
-      // 1. Standard <link rel="icon">
-      let iconLink = document.querySelector<HTMLLinkElement>("link[rel='icon']:not([sizes])") ||
-                     document.querySelector<HTMLLinkElement>("link[rel='icon']");
-      if (!iconLink) {
-        iconLink = document.createElement('link');
-        iconLink.rel = 'icon';
-        document.head.appendChild(iconLink);
-      }
-      iconLink.type = mimeType;
-      iconLink.href = faviconUrl;
-
-      // 2. Shortcut icon for legacy browsers
-      let shortcutLink = document.querySelector<HTMLLinkElement>("link[rel='shortcut icon']");
-      if (!shortcutLink) {
-        shortcutLink = document.createElement('link');
-        shortcutLink.rel = 'shortcut icon';
-        document.head.appendChild(shortcutLink);
-      }
-      shortcutLink.type = mimeType;
-      shortcutLink.href = faviconUrl;
-
-      // 3. Apple Touch Icon for iOS Safari & search engines
-      let appleLink = document.querySelector<HTMLLinkElement>("link[rel='apple-touch-icon']");
-      if (!appleLink) {
-        appleLink = document.createElement('link');
-        appleLink.rel = 'apple-touch-icon';
-        document.head.appendChild(appleLink);
-      }
-      appleLink.href = faviconUrl;
-
-      // 4. Update any existing sized icon links so crawlers and high-DPI screens resolve the dynamic favicon
-      const sizedIcons = document.querySelectorAll<HTMLLinkElement>("link[rel='icon'][sizes]");
-      sizedIcons.forEach((el) => {
-        el.href = faviconUrl;
-        el.type = mimeType;
-      });
-
-      // 5. Windows tile metadata
-      let msTile = document.querySelector<HTMLMetaElement>("meta[name='msapplication-TileImage']");
-      if (!msTile) {
-        msTile = document.createElement('meta');
-        msTile.name = 'msapplication-TileImage';
-        document.head.appendChild(msTile);
-      }
-      msTile.content = faviconUrl;
-
-      // 6. Ensure standard Web App Manifest link is present and pointing to /manifest.webmanifest
-      let manifestLink = document.querySelector<HTMLLinkElement>("link[rel='manifest']");
-      if (!manifestLink) {
-        manifestLink = document.createElement('link');
-        manifestLink.rel = 'manifest';
-        document.head.appendChild(manifestLink);
-      }
-      manifestLink.href = '/manifest.webmanifest';
-
-      // 7. Theme color meta tag
-      let themeMeta = document.querySelector<HTMLMetaElement>("meta[name='theme-color']");
-      if (!themeMeta) {
-        themeMeta = document.createElement('meta');
-        themeMeta.name = 'theme-color';
-        document.head.appendChild(themeMeta);
-      }
-      themeMeta.content = '#08090b';
-    }
-  }, [storeSettings?.store_name, storeSettings?.tagline, storeSettings?.favicon_url]);
-
-  return null;
-};
 
 const MainContent: React.FC = () => {
   const { currentPage, navigateTo, storeSettings } = useStore();
@@ -184,7 +80,7 @@ const MainContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
       {/* Top Header */}
       <Header />
 
@@ -195,12 +91,10 @@ const MainContent: React.FC = () => {
 
       {/* Global Footer (shown on all views except full admin) */}
       {currentPage !== 'admin' && (
-        <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 mt-12 pb-20 lg:pb-8 transition-colors duration-200">
+        <footer className="bg-white border-t border-slate-200 mt-12 pb-20 lg:pb-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-            {/* Adsterra Banner Ad Area (Excluded on Checkout, Payment, Login, Signup, and Admin pages) */}
-            {currentPage !== 'checkout' && currentPage !== 'login' && (
-              <AdsterraBanner />
-            )}
+            {/* Newsletter Subscription Component */}
+            <NewsletterSubscription />
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {/* Brand Col */}
@@ -210,21 +104,21 @@ const MainContent: React.FC = () => {
                     <img
                       src={storeSettings.logo_url}
                       alt={storeSettings.store_name}
-                      className="w-8 h-8 rounded-xl object-contain bg-[#090a0d] border border-slate-800"
+                      className="w-8 h-8 rounded-xl object-contain border border-slate-200"
                     />
                   ) : (
                     <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center">
                       <ShoppingBag className="w-4 h-4" />
                     </div>
                   )}
-                  <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-slate-100">
+                  <span className="font-extrabold text-base tracking-tight text-slate-900">
                     {storeSettings.store_name || 'Zevora'}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                <p className="text-xs text-slate-500 leading-relaxed">
                   {storeSettings.tagline || 'Your trusted e-commerce destination for premier electronics, trending fashion, and home essentials.'}
                 </p>
-                <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
                   <span>100% Secure Shopping Guarantee</span>
                 </div>
@@ -232,19 +126,19 @@ const MainContent: React.FC = () => {
 
               {/* Shop Col */}
               <div className="space-y-2 text-xs">
-                <h4 className="font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider text-[11px]">
+                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
                   Shop Catalog
                 </h4>
-                <ul className="space-y-1.5 text-slate-500 dark:text-slate-400">
+                <ul className="space-y-1.5 text-slate-500">
                   <li>
-                    <button onClick={() => navigateTo('categories')} className="hover:text-blue-600 dark:hover:text-blue-400">
+                    <button onClick={() => navigateTo('categories')} className="hover:text-blue-600">
                       All Categories
                     </button>
                   </li>
                   <li>
                     <button
                       onClick={() => navigateTo('category_products', { categoryId: 'cat-mobiles' })}
-                      className="hover:text-blue-600 dark:hover:text-blue-400"
+                      className="hover:text-blue-600"
                     >
                       Mobiles &amp; Tablets
                     </button>
@@ -252,7 +146,7 @@ const MainContent: React.FC = () => {
                   <li>
                     <button
                       onClick={() => navigateTo('category_products', { categoryId: 'cat-laptops' })}
-                      className="hover:text-blue-600 dark:hover:text-blue-400"
+                      className="hover:text-blue-600"
                     >
                       Laptops &amp; Tech
                     </button>
@@ -260,7 +154,7 @@ const MainContent: React.FC = () => {
                   <li>
                     <button
                       onClick={() => navigateTo('category_products', { categoryId: 'cat-fashion' })}
-                      className="hover:text-blue-600 dark:hover:text-blue-400"
+                      className="hover:text-blue-600"
                     >
                       Fashion &amp; Shoes
                     </button>
@@ -270,16 +164,16 @@ const MainContent: React.FC = () => {
 
               {/* Customer Service Col */}
               <div className="space-y-2 text-xs">
-                <h4 className="font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider text-[11px]">
+                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
                   Customer Service
                 </h4>
-                <ul className="space-y-1.5 text-slate-500 dark:text-slate-400">
+                <ul className="space-y-1.5 text-slate-500">
                   <li>
                     <a
                       href="https://wa.me/message/7RK4DNNVB7LBB1"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-300 transition-colors"
+                      className="hover:text-emerald-600 flex items-center gap-1.5 font-medium text-slate-600 transition-colors"
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                       <span>WhatsApp Support</span>
@@ -290,29 +184,29 @@ const MainContent: React.FC = () => {
                       href="https://t.me/Raju12470"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-sky-600 dark:hover:text-sky-400 flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-300 transition-colors"
+                      className="hover:text-sky-600 flex items-center gap-1.5 font-medium text-slate-600 transition-colors"
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
                       <span>Telegram Support</span>
                     </a>
                   </li>
                   <li>
-                    <button onClick={() => navigateTo('orders')} className="hover:text-blue-600 dark:hover:text-blue-400">
+                    <button onClick={() => navigateTo('orders')} className="hover:text-blue-600">
                       Order Tracking
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => navigateTo('help')} className="hover:text-blue-600 dark:hover:text-blue-400">
+                    <button onClick={() => navigateTo('help')} className="hover:text-blue-600">
                       Help &amp; Support
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => navigateTo('help')} className="hover:text-blue-600 dark:hover:text-blue-400">
+                    <button onClick={() => navigateTo('help')} className="hover:text-blue-600">
                       Return &amp; Refund Policy
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => navigateTo('wishlist')} className="hover:text-blue-600 dark:hover:text-blue-400">
+                    <button onClick={() => navigateTo('wishlist')} className="hover:text-blue-600">
                       My Wishlist
                     </button>
                   </li>
@@ -321,29 +215,29 @@ const MainContent: React.FC = () => {
 
               {/* Legal & Admin Col */}
               <div className="space-y-2 text-xs">
-                <h4 className="font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider text-[11px]">
+                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
                   Platform
                 </h4>
-                <ul className="space-y-1.5 text-slate-500 dark:text-slate-400">
+                <ul className="space-y-1.5 text-slate-500">
                   <li>
-                    <button onClick={() => navigateTo('terms')} className="hover:text-blue-600 dark:hover:text-blue-400">
+                    <button onClick={() => navigateTo('terms')} className="hover:text-blue-600">
                       Terms &amp; Conditions
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => navigateTo('privacy')} className="hover:text-blue-600 dark:hover:text-blue-400">
+                    <button onClick={() => navigateTo('privacy')} className="hover:text-blue-600">
                       Privacy Policy
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => navigateTo('settings')} className="hover:text-blue-600 dark:hover:text-blue-400">
+                    <button onClick={() => navigateTo('settings')} className="hover:text-blue-600">
                       Settings
                     </button>
                   </li>
                   <li>
                     <button
                       onClick={() => navigateTo('admin')}
-                      className="hover:text-blue-600 dark:hover:text-blue-400 font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 mt-1 cursor-pointer"
+                      className="hover:text-blue-600 font-bold text-blue-600 flex items-center gap-1 mt-1 cursor-pointer"
                     >
                       <span>🔒 Store Admin Panel</span>
                     </button>
@@ -353,12 +247,12 @@ const MainContent: React.FC = () => {
             </div>
 
             {/* Social Media Follow Section */}
-            <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="mt-8 pt-6 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="text-center md:text-left space-y-0.5">
-                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
+                <p className="text-xs sm:text-sm font-bold text-slate-900">
                   Follow us on Social Media for More Offers, Mega Deals &amp; Exclusive Discounts!
                 </p>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                <p className="text-[11px] text-slate-500">
                   Stay connected on Instagram, Facebook &amp; Twitter/X for daily flash sales and promotions.
                 </p>
               </div>
@@ -405,7 +299,7 @@ const MainContent: React.FC = () => {
               </div>
             </div>
 
-            <div className="border-t border-slate-100 dark:border-slate-800 mt-6 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 dark:text-slate-500 gap-3">
+            <div className="border-t border-slate-100 mt-6 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-3">
               <p>© {new Date().getFullYear()} {storeSettings.store_name || 'Zevora'}. All rights reserved.</p>
               <div className="flex items-center gap-4">
                 <span>100% Secure Checkout</span>
@@ -416,7 +310,7 @@ const MainContent: React.FC = () => {
                 <span>·</span>
                 <button
                   onClick={() => navigateTo('admin')}
-                  className="hover:text-blue-600 dark:hover:text-blue-400 font-semibold text-slate-500 dark:text-slate-400 cursor-pointer transition-colors"
+                  className="hover:text-blue-600 font-semibold text-slate-500 cursor-pointer transition-colors"
                 >
                   Admin Portal
                 </button>
@@ -435,12 +329,6 @@ const MainContent: React.FC = () => {
 
       {/* Global Interactive Notification Toast */}
       <Toast />
-
-      {/* PWA In-App Install Prompt Banner */}
-      <PWAInstallBanner />
-
-      {/* Connectivity Status Indicator */}
-      <OfflineIndicator />
     </div>
   );
 };
@@ -448,7 +336,6 @@ const MainContent: React.FC = () => {
 export default function App() {
   return (
     <StoreProvider>
-      <DynamicHeadInjector />
       <MainContent />
     </StoreProvider>
   );

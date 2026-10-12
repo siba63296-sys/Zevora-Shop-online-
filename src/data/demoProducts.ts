@@ -3057,6 +3057,711 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "is_deal": false
   },
   {
+    "id": "demo-prod-66",
+    "name": "TP-Link Tapo Smart Multicolor LED Strip Light (5M)",
+    "description": "No hub required, schedule timers, preset lighting modes, and sync to music.",
+    "category_id": "cat-home",
+    "category_name": "Home & LED Lights",
+    "price": 2199,
+    "original_price": 3999,
+    "discount_percent": 45,
+    "rating": 4.4,
+    "review_count": 108,
+    "in_stock": false,
+    "stock_quantity": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=600&auto=format&fit=crop&q=80"
+    ],
+    "specs": [
+      {
+        "label": "Condition",
+        "value": "Brand New"
+      },
+      {
+        "label": "Delivery",
+        "value": "All India Available"
+      },
+      {
+        "label": "Return Policy",
+        "value": "7 Days Return"
+      },
+      {
+        "label": "Stock Status",
+        "value": "Out of Stock"
+      }
+    ],
+    "colors": [
+      {
+        "name": "Standard",
+        "hex": "#334155"
+      },
+      {
+        "name": "Classic",
+        "hex": "#0f172a"
+      }
+    ],
+    "is_featured": false,
+    "is_deal": false
+  },
+  {
+    "id": "demo-prod-67",
+    "name": "Mi Smart Bedside LED Lamp 2 with Touch Controls",
+    "description": "Even light distribution, warm white to cool daylight plus 16 million colors.",
+    "category_id": "cat-home",
+    "category_name": "Home & LED Lights",
+    "price": 2899,
+    "original_price": 3999,
+    "discount_percent": 28,
+    "rating": 4.1,
+    "review_count": 378,
+    "in_stock": false,
+    "stock_quantity": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?w=600&auto=format&fit=crop&q=80"
+    ],
+    "specs": [
+      {
+        "label": "Condition",
+        "value": "Brand New"
+      },
+      {
+        "label": "Delivery",
+        "value": "All India Available"
+      },
+      {
+        "label": "Return Policy",
+        "value": "7 Days Return"
+      },
+      {
+        "label": "Stock Status",
+        "value": "Out of Stock"
+      }
+    ],
+    "colors": [
+      {
+        "name": "Standard",
+        "hex": "#334155"
+      },
+      {
+        "name": "Classic",
+        "hex": "#0f172a"
+      }
+    ],
+    "is_featured": false,
+    "is_deal": false
+  },
+  {
+    "id": "demo-prod-68",
+    "name": "Syska Smart Wi-Fi 9W LED Bulb (Pack of 2)",
+    "description": "Create custom automation scenes and control brightness remotely from your smartphone.",
+    "category_id": "cat-home",
+    "category_name": "Home & LED Lights",
+    "price": 899,
+    "original_price": 1999,
+    "discount_percent": 55,
+    "rating": 4,
+    "review_count": 474,
+    "in_stock": false,
+    "stock_quantity": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=80"
+    ],
+    "specs": [
+      {
+        "label": "Condition",
+        "value": "Brand New"
+      },
+      {
+        "label": "Delivery",
+        "value": "All India Available"
+      },
+      {
+        "label": "Return Policy",
+        "value": "7 Days Return"
+      },
+      {
+        "label": "Stock Status",
+        "value": "Out of Stock"
+      }
+    ],
+    "colors": [
+      {
+        "name": "Standard",
+        "hex": "#334155"
+      },
+      {
+        "name": "Classic",
+        "hex": "#0f172a"
+      }
+    ],
+    "is_featured": false,
+    "is_deal": false
+  },
+  {
+    "id": "demo-prod-69",
+    "name": "Qubo Smart RGB LED Strip Light (10 Meter Roll)",
+    "description": "Flexible waterproof adhesive strip with remote control and smart home voice sync.",
+    "category_id": "cat-home",
+    "category_name": "Home & LED Lights",
+    "price": 2999,
+    "original_price": 4999,
+    "discount_percent": 40,
+    "rating": 4.4,
+    "review_count": 349,
+    "in_stock": false,
+    "stock_quantity": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80"
+    ],
+    "specs": [
+      {
+        "label": "Condition",
+        "value": "Brand New"
+      },
+      {
+        "label": "Delivery",
+        "value": "All India Available"
+      },
+      {
+        "label": "Return Policy",
+        "value": "7 Days Return"
+      },
+      {
+        "label": "Stock Status",
+        "value": "Out of Stock"
+      }
+    ],
+    "colors": [
+      {
+        "name": "Standard",
+        "hex": "#334155"
+      },
+      {
+        "name": "Classic",
+        "hex": "#0f172a"
+      }
+    ],
+    "is_featured": false,
+    "is_deal": false
+  },
+  {
+    "id": "demo-prod-70",
+    "name": "Havells Adore 10W LED Desk Study Lamp with USB Port",
+    "description": "Eye-caring non-flicker natural reading light with touch dimming and flexible gooseneck.",
+    "category_id": "cat-home",
+    "category_name": "Home & LED Lights",
+    "price": 1799,
+    "original_price": 2995,
+    "discount_percent": 40,
+    "rating": 4.8,
+    "review_count": 64,
+    "in_stock": false,
+    "stock_quantity": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80"
+    ],
+    "specs": [
+      {
+        "label": "Condition",
+        "value": "Brand New"
+      },
+      {
+        "label": "Delivery",
+        "value": "All India Available"
+      },
+      {
+        "label": "Return Policy",
+        "value": "7 Days Return"
+      },
+      {
+        "label": "Stock Status",
+        "value": "Out of Stock"
+      }
+    ],
+    "colors": [
+      {
+        "name": "Standard",
+        "hex": "#334155"
+      },
+      {
+        "name": "Classic",
+        "hex": "#0f172a"
+      }
+    ],
+    "is_featured": false,
+    "is_deal": false
+  },
+  {
+    "id": "demo-prod-71",
+    "name": "Sunset Projection LED Atmosphere Lamp for Aesthetic Room Decor",
+    "description": "180 degree rotation rainbow halo projection lamp for photography and relaxing bedrooms.",
+    "category_id": "cat-home",
+    "category_name": "Home & LED Lights",
+    "price": 799,
+    "original_price": 1999,
+    "discount_percent": 60,
+    "rating": 4.9,
+    "review_count": 289,
+    "in_stock": false,
+    "stock_quantity": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1517991104123-1d56a6e81ed9?w=600&auto=format&fit=crop&q=80"
+    ],
+    "specs": [
+      {
+        "label": "Condition",
+        "value": "Brand New"
+      },
+      {
+        "label": "Delivery",
+        "value": "All India Available"
+      },
+      {
+        "label": "Return Policy",
+        "value": "7 Days Return"
+      },
+      {
+        "label": "Stock Status",
+        "value": "Out of Stock"
+      }
+    ],
+    "colors": [
+      {
+        "name": "Standard",
+        "hex": "#334155"
+      },
+      {
+        "name": "Classic",
+        "hex": "#0f172a"
+      }
+    ],
+    "is_featured": false,
+    "is_deal": false
+  },
+  {
+    "id": "demo-prod-72",
+    "name": "Hexagon Modular RGB Wall LED Panels (Pack of 6)",
+    "description": "Touch and sound sensitive geometric LED wall decor tiles with customizable light tracks.",
+    "category_id": "cat-home",
+    "category_name": "Home & LED Lights",
+    "price": 3499,
+    "original_price": 6999,
+    "discount_percent": 50,
+    "rating": 4.6,
+    "review_count": 463,
+    "in_stock": false,
+    "stock_quantity": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80"
+    ],
+    "specs": [
+      {
+        "label": "Condition",
+        "value": "Brand New"
+      },
+      {
+        "label": "Delivery",
+        "value": "All India Available"
+      },
+      {
+        "label": "Return Policy",
+        "value": "7 Days Return"
+      },
+      {
+        "label": "Stock Status",
+        "value": "Out of Stock"
+      }
+    ],
+    "colors": [
+      {
+        "name": "Standard",
+        "hex": "#334155"
+      },
+      {
+        "name": "Classic",
+        "hex": "#0f172a"
+      }
+    ],
+    "is_featured": false,
+    "is_deal": false
+  },
+  {
+    "id": "demo-prod-73",
+    "name": "Smart Corner Floor LED Ambient Lamp with Remote",
+    "description": "Minimalist Scandinavian upright corner bar with 300+ multi-color dynamic lighting modes.",
+    "category_id": "cat-home",
+    "category_name": "Home & LED Lights",
+    "price": 2999,
+    "original_price": 5999,
+    "discount_percent": 50,
+    "rating": 4.1,
+    "review_count": 421,
+    "in_stock": false,
+    "stock_quantity": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?w=600&auto=format&fit=crop&q=80"
+    ],
+    "specs": [
+      {
+        "label": "Condition",
+        "value": "Brand New"
+      },
+      {
+        "label": "Delivery",
+        "value": "All India Available"
+      },
+      {
+        "label": "Return Policy",
+        "value": "7 Days Return"
+      },
+      {
+        "label": "Stock Status",
+        "value": "Out of Stock"
+      }
+    ],
+    "colors": [
+      {
+        "name": "Standard",
+        "hex": "#334155"
+      },
+      {
+        "name": "Classic",
+        "hex": "#0f172a"
+      }
+    ],
+    "is_featured": false,
+    "is_deal": false
+  },
+  {
+    "id": "demo-prod-74",
+    "name": "Motion Sensor Automatic LED Night Lights (Pack of 3)",
+    "description": "PIR motion detection activates in dark, magnetic stick-on for stairs, closet, and hallways.",
+    "category_id": "cat-home",
+    "category_name": "Home & LED Lights",
+    "price": 699,
+    "original_price": 1499,
+    "discount_percent": 53,
+    "rating": 4,
+    "review_count": 184,
+    "in_stock": false,
+    "stock_quantity": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=600&auto=format&fit=crop&q=80"
+    ],
+    "specs": [
+      {
+        "label": "Condition",
+        "value": "Brand New"
+      },
+      {
+        "label": "Delivery",
+        "value": "All India Available"
+      },
+      {
+        "label": "Return Policy",
+        "value": "7 Days Return"
+      },
+      {
+        "label": "Stock Status",
+        "value": "Out of Stock"
+      }
+    ],
+    "colors": [
+      {
+        "name": "Standard",
+        "hex": "#334155"
+      },
+      {
+        "name": "Classic",
+        "hex": "#0f172a"
+      }
+    ],
+    "is_featured": false,
+    "is_deal": false
+  },
+  {
+    "id": "demo-prod-75",
+    "name": "Fairy String Curtain LED Lights (300 LEDs, 3x3M)",
+    "description": "8 blinking modes with remote control for festival Diwali, Christmas, and indoor decoration.",
+    "category_id": "cat-home",
+    "category_name": "Home & LED Lights",
+    "price": 899,
+    "original_price": 1999,
+    "discount_percent": 55,
+    "rating": 4.3,
+    "review_count": 181,
+    "in_stock": false,
+    "stock_quantity": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1512389142860-9c449e58a543?w=600&auto=format&fit=crop&q=80"
+    ],
+    "specs": [
+      {
+        "label": "Condition",
+        "value": "Brand New"
+      },
+      {
+        "label": "Delivery",
+        "value": "All India Available"
+      },
+      {
+        "label": "Return Policy",
+        "value": "7 Days Return"
+      },
+      {
+        "label": "Stock Status",
+        "value": "Out of Stock"
+      }
+    ],
+    "colors": [
+      {
+        "name": "Standard",
+        "hex": "#334155"
+      },
+      {
+        "name": "Classic",
+        "hex": "#0f172a"
+      }
+    ],
+    "is_featured": false,
+    "is_deal": false
+  },
+  {
+    "id": "demo-prod-76",
+    "name": "Ring Light 12-inch LED with Adjustable 7ft Tripod Stand",
+    "description": "3 color lighting modes, 10 brightness levels with phone holder for reels and streaming.",
+    "category_id": "cat-home",
+    "category_name": "Home & LED Lights",
+    "price": 1499,
+    "original_price": 3999,
+    "discount_percent": 63,
+    "rating": 4.7,
+    "review_count": 419,
+    "in_stock": false,
+    "stock_quantity": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=600&auto=format&fit=crop&q=80"
+    ],
+    "specs": [
+      {
+        "label": "Condition",
+        "value": "Brand New"
+      },
+      {
+        "label": "Delivery",
+        "value": "All India Available"
+      },
+      {
+        "label": "Return Policy",
+        "value": "7 Days Return"
+      },
+      {
+        "label": "Stock Status",
+        "value": "Out of Stock"
+      }
+    ],
+    "colors": [
+      {
+        "name": "Standard",
+        "hex": "#334155"
+      },
+      {
+        "name": "Classic",
+        "hex": "#0f172a"
+      }
+    ],
+    "is_featured": false,
+    "is_deal": false
+  },
+  {
+    "id": "demo-prod-77",
+    "name": "Solar Powered Outdoor Waterproof LED Garden Spike Lights (Pack of 4)",
+    "description": "Dusk to dawn automatic illumination with durable stainless steel weather-proof casing.",
+    "category_id": "cat-home",
+    "category_name": "Home & LED Lights",
+    "price": 1299,
+    "original_price": 2499,
+    "discount_percent": 48,
+    "rating": 4.9,
+    "review_count": 464,
+    "in_stock": false,
+    "stock_quantity": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80"
+    ],
+    "specs": [
+      {
+        "label": "Condition",
+        "value": "Brand New"
+      },
+      {
+        "label": "Delivery",
+        "value": "All India Available"
+      },
+      {
+        "label": "Return Policy",
+        "value": "7 Days Return"
+      },
+      {
+        "label": "Stock Status",
+        "value": "Out of Stock"
+      }
+    ],
+    "colors": [
+      {
+        "name": "Standard",
+        "hex": "#334155"
+      },
+      {
+        "name": "Classic",
+        "hex": "#0f172a"
+      }
+    ],
+    "is_featured": false,
+    "is_deal": false
+  },
+  {
+    "id": "demo-prod-78",
+    "name": "USB Rechargeable Magnetic LED Under Cabinet Light Bar",
+    "description": "Slim aluminum profile with dual sensors, ideal for kitchen counters and wardrobe lighting.",
+    "category_id": "cat-home",
+    "category_name": "Home & LED Lights",
+    "price": 599,
+    "original_price": 1299,
+    "discount_percent": 54,
+    "rating": 4.7,
+    "review_count": 292,
+    "in_stock": false,
+    "stock_quantity": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&auto=format&fit=crop&q=80"
+    ],
+    "specs": [
+      {
+        "label": "Condition",
+        "value": "Brand New"
+      },
+      {
+        "label": "Delivery",
+        "value": "All India Available"
+      },
+      {
+        "label": "Return Policy",
+        "value": "7 Days Return"
+      },
+      {
+        "label": "Stock Status",
+        "value": "Out of Stock"
+      }
+    ],
+    "colors": [
+      {
+        "name": "Standard",
+        "hex": "#334155"
+      },
+      {
+        "name": "Classic",
+        "hex": "#0f172a"
+      }
+    ],
+    "is_featured": false,
+    "is_deal": false
+  },
+  {
+    "id": "demo-prod-79",
+    "name": "Govee RGBIC Neon Rope LED Light for Gaming Desk (3M)",
+    "description": "Segmented multi-color control with flexible bendable silicone body for creative silhouettes.",
+    "category_id": "cat-home",
+    "category_name": "Home & LED Lights",
+    "price": 4499,
+    "original_price": 6999,
+    "discount_percent": 36,
+    "rating": 4.3,
+    "review_count": 60,
+    "in_stock": false,
+    "stock_quantity": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80"
+    ],
+    "specs": [
+      {
+        "label": "Condition",
+        "value": "Brand New"
+      },
+      {
+        "label": "Delivery",
+        "value": "All India Available"
+      },
+      {
+        "label": "Return Policy",
+        "value": "7 Days Return"
+      },
+      {
+        "label": "Stock Status",
+        "value": "Out of Stock"
+      }
+    ],
+    "colors": [
+      {
+        "name": "Standard",
+        "hex": "#334155"
+      },
+      {
+        "name": "Classic",
+        "hex": "#0f172a"
+      }
+    ],
+    "is_featured": false,
+    "is_deal": false
+  },
+  {
+    "id": "demo-prod-80",
+    "name": "Waterproof RGB Underwater Submersible LED Lights with Remote",
+    "description": "Color changing submersible lamps with suction cups and magnets for vases, pools, and fountains.",
+    "category_id": "cat-home",
+    "category_name": "Home & LED Lights",
+    "price": 899,
+    "original_price": 1899,
+    "discount_percent": 53,
+    "rating": 4,
+    "review_count": 346,
+    "in_stock": false,
+    "stock_quantity": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=600&auto=format&fit=crop&q=80"
+    ],
+    "specs": [
+      {
+        "label": "Condition",
+        "value": "Brand New"
+      },
+      {
+        "label": "Delivery",
+        "value": "All India Available"
+      },
+      {
+        "label": "Return Policy",
+        "value": "7 Days Return"
+      },
+      {
+        "label": "Stock Status",
+        "value": "Out of Stock"
+      }
+    ],
+    "colors": [
+      {
+        "name": "Standard",
+        "hex": "#334155"
+      },
+      {
+        "name": "Classic",
+        "hex": "#0f172a"
+      }
+    ],
+    "is_featured": false,
+    "is_deal": false
+  },
+  {
     "id": "demo-prod-81",
     "name": "Anouk Women Floral Embroidered Anarkali Kurta Set with Dupatta",
     "description": "Pure chanderi cotton with intricate thread embroidery and flared hemline.",
@@ -8906,8 +9611,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 18,
     "rating": 4.1,
     "review_count": 357,
-    "in_stock": true,
-    "stock_quantity": 100,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80"
     ],
@@ -8926,7 +9631,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -8959,8 +9664,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 21,
     "rating": 4.5,
     "review_count": 474,
-    "in_stock": true,
-    "stock_quantity": 10,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=600&auto=format&fit=crop&q=80"
     ],
@@ -8979,7 +9684,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -9012,8 +9717,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 42,
     "rating": 4.9,
     "review_count": 370,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9032,7 +9737,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -9065,8 +9770,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 68,
     "rating": 4.8,
     "review_count": 96,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9085,7 +9790,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -9118,8 +9823,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 22,
     "rating": 4.4,
     "review_count": 263,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1520639888713-7851133b1ed0?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9138,7 +9843,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -9171,8 +9876,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 38,
     "rating": 4.1,
     "review_count": 455,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9191,7 +9896,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -9224,8 +9929,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 31,
     "rating": 4.1,
     "review_count": 435,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9244,7 +9949,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -9277,8 +9982,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 24,
     "rating": 4.4,
     "review_count": 214,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9297,7 +10002,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -9330,8 +10035,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 19,
     "rating": 4.8,
     "review_count": 150,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9350,7 +10055,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -9383,8 +10088,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 17,
     "rating": 4.9,
     "review_count": 403,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9403,7 +10108,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -9436,8 +10141,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 20,
     "rating": 4.5,
     "review_count": 470,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1607522370275-f14206abe5d3?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9456,7 +10161,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -9489,8 +10194,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 18,
     "rating": 4.1,
     "review_count": 317,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9509,7 +10214,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -9542,8 +10247,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 21,
     "rating": 4,
     "review_count": 29,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9562,7 +10267,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -9595,8 +10300,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 33,
     "rating": 4.3,
     "review_count": 323,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9615,7 +10320,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -9648,8 +10353,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 22,
     "rating": 4.7,
     "review_count": 471,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9668,7 +10373,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -9701,8 +10406,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 33,
     "rating": 4.9,
     "review_count": 399,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9721,7 +10426,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -9754,8 +10459,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 17,
     "rating": 4.7,
     "review_count": 143,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9774,7 +10479,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -9807,8 +10512,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 40,
     "rating": 4.2,
     "review_count": 221,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9827,7 +10532,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -9860,8 +10565,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 38,
     "rating": 4,
     "review_count": 439,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9880,7 +10585,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -9913,8 +10618,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 36,
     "rating": 4.2,
     "review_count": 452,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9933,7 +10638,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -9966,8 +10671,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 35,
     "rating": 4.6,
     "review_count": 256,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=600&auto=format&fit=crop&q=80"
     ],
@@ -9986,7 +10691,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -10019,8 +10724,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 15,
     "rating": 4.9,
     "review_count": 104,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10039,7 +10744,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -10072,8 +10777,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 47,
     "rating": 4.8,
     "review_count": 375,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10092,7 +10797,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -10125,8 +10830,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 11,
     "rating": 4.3,
     "review_count": 474,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10145,7 +10850,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
@@ -10178,8 +10883,8 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
     "discount_percent": 21,
     "rating": 4,
     "review_count": 352,
-    "in_stock": true,
-    "stock_quantity": 25,
+    "in_stock": false,
+    "stock_quantity": 0,
     "images": [
       "https://images.unsplash.com/photo-1520639888713-7851133b1ed0?w=600&auto=format&fit=crop&q=80"
     ],
@@ -10198,7 +10903,7 @@ export const DEMO_OUT_OF_STOCK_PRODUCTS: Product[] = [
       },
       {
         "label": "Stock Status",
-        "value": "In Stock"
+        "value": "Out of Stock"
       }
     ],
     "colors": [
